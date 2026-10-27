@@ -1,0 +1,337 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+.sidebar {
+  background-color: var(--color-primary);
+  height: 100vh;
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.logo-container {
+  margin: 0 14px 14px 14px;
+  background-color: transparent;
+  padding: 8px 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-logo {
+  display: block;
+  height: 36px;
+  width: 180px;
+  max-width: 100%;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0 8px;
+  margin: 0;
+}
+
+.nav-item {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  color: #cacbcc;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  gap: 6px;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-link:hover .nav-icon,
+.nav-link.active .nav-icon {
+  opacity: 1;
+}
+.nav-link.active:hover {
+  background-color: var(--color-secondary);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+  color: var(--color-primary);
+}
+
+.nav-item ul li a.active:hover {
+  background-color: var(--color-secondary);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+  color: var(--color-primary);
+}
+
+.section-label {
+  padding: 14px 12px 6px 12px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  user-select: none;
+  cursor: default;
+  list-style: none;
+}
+
+.nav-link:hover {
+  background-color: rgba(74, 144, 226, 0.16);
+  color: var(--color-secondary);
+}
+
+.nav-link.active {
+  background-color: var(--color-secondary);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+  color: var(--color-primary);
+}
+
+.user-section {
+  margin-top: auto;
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--color-primary);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.user-name {
+  color: var(--color-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  color: #94a3b8;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.logout-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.logout-btn-full {
+  width: 100%;
+  background: #3f3f3f;
+  color: var(--color-secondary);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.logout-btn-full svg {
+  width: 14px;
+  height: 14px;
+}
+
+.logout-btn-full:hover {
+  background: #525252;
+}
+
+/* ── Collapse section (bottom of sidebar) ────────────────────────────── */
+.collapse-section {
+  padding: 4px 10px 4px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #cacbcc;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: color 0.2s, background 0.2s;
+}
+.collapse-toggle:hover { background: rgba(255,255,255,0.06); color: #94a3b8; }
+.collapsed .collapse-toggle { justify-content: center; padding: 8px; }
+
+/* ── Collapsed state ─────────────────────────────────────────────────── */
+.sidebar-logo-small {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.collapsed .logo-container {
+  padding: 6px;
+  margin: 0 8px 14px;
+  justify-content: center;
+}
+
+.collapsed .nav-text,
+.collapsed .section-label,
+.collapsed .user-details { display: none; }
+
+.collapsed .nav-link,
+.collapsed .nav-item button {
+  justify-content: center;
+  padding: 9px;
+}
+
+/* Hide settings chevron arrow when collapsed */
+.collapsed .nav-item button svg:not(.nav-icon) { display: none; }
+
+.collapsed .user-info { justify-content: center; }
+
+.collapsed .user-section { padding: 8px; }
+
+.collapsed .logout-btn-full {
+  padding: 9px;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 8px;
+}
+.collapsed .logout-btn-full:hover { background: #ef4444; }
+
+/* ── Dropdown menu inside nav-item ───────────────────────────────────── */
+/* Dropdown menu inside nav-item */
+.nav-item ul {
+  margin-top: 2px;
+  margin-left: 24px;
+  list-style: none;
+  padding: 4px;
+}
+
+.nav-item ul li a {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #cacbcc;
+  transition: all 0.2s ease;
+}
+
+.nav-item ul li a:hover {
+  background-color: rgba(74, 144, 226, 0.16);
+  color: var(--color-secondary);
+}
+
+/* Make the Settings button match nav-link style exactly */
+.nav-item button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 9px 12px;
+  color: #cacbcc;
+  font-size: 12px;
+   font-family: inherit;  
+  line-height: inherit;  
+  font-weight: 500;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 6px;
+}
+
+.nav-item button:hover {
+  background-color: rgba(74, 144, 226, 0.16);
+  color: var(--color-secondary);
+}
+
+/* Nav icon inside Settings button — same size as all other nav icons */
+.nav-item button .nav-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.nav-item button:hover .nav-icon {
+  opacity: 1;
+}
+
+/* Arrow chevron only — scoped away from .nav-icon */
+button svg:not(.nav-icon) {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+button svg:not(.nav-icon).rotate-180 {
+  transform: rotate(180deg);
+}

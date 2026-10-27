@@ -1,0 +1,30 @@
+GOLDEN REVIEW EXAMPLE — General (Fallback)
+PURPOSE: Use this example only to understand good writing style, structure, tone, and use of specific examples. Do NOT use it to infer content requirements. All content requirements come from the criteria doc.
+
+================================================================================
+EXAMPLE — General Consultant (Mid-Level)
+================================================================================
+
+TECHNOLOGY / CORE SKILLS
+
+Over the past year I have deepened my expertise in the core technologies used across my projects. At Horizon, I was the go-to person for the data pipeline work — the existing pipeline was processing batch files sequentially, causing 4-hour overnight delays. I redesigned it to run in parallel using AWS Step Functions, reducing processing time to under 40 minutes. I documented the approach and ran a knowledge-sharing session with the team so others could maintain it independently.
+
+I also supported two junior team members through complex debugging sessions. In one case, a colleague was blocked for two days on an intermittent race condition in our event-driven service. I sat with them, walked through the execution model, and we identified the missing idempotency key together. Rather than just giving them the answer, I explained the reasoning so they could catch similar issues independently going forward.
+
+When the client requested an architectural change mid-delivery — moving from a monolithic deployment to a microservices split — I assessed the impact, flagged the scope risk to the project lead, and proposed a phased approach that let us deliver the original scope on time while laying the groundwork for the split in the next cycle.
+
+CONSULTING SKILLS
+
+At Horizon, the client's product team and engineering team had conflicting views on the delivery timeline. The product team was pushing for a hard cutover date that the engineering team considered unrealistic given the volume of outstanding defects. I facilitated a structured conversation between both sides, presenting a risk-ranked defect list with estimated resolution times. The outcome was a revised date that the client accepted and that the engineering team was confident in delivering. The cutover happened on schedule with no critical defects in production.
+
+I managed scope carefully across two concurrent projects. When Horizon's business team began requesting features outside the agreed statement of work, I tracked these as a separate backlog, acknowledged their value, and flagged them through the right channels rather than absorbing them silently into the sprint. This kept the core delivery on track and gave the client visibility over what was in and out of scope.
+
+I presented the delivery roadmap to the client's senior leadership team monthly, adapting my communication style to a non-technical audience. I focused on business outcomes and risk rather than technical detail, which built confidence with the CTO and led to the team being engaged for the follow-on phase.
+
+CATALYSTFLOW VALUES CONSISTENTLY DEMONSTRATED
+
+Sharing Deep Expertise: I ran three internal knowledge-sharing sessions this year — one on AWS Step Functions patterns, one on test data management strategies, and one on stakeholder communication techniques for technical leads. Each session had 10–15 attendees and generated follow-up questions and discussion, which I took as a sign that the content was relevant and useful.
+
+Pragmatic Delivery: When we identified a risk that our chosen approach would not meet the client's performance requirements under peak load, I proposed an early spike rather than continuing and discovering the issue late. The spike confirmed the risk, we adjusted the approach, and the delivery was not impacted. I pushed back on a gold-plating tendency in the team that would have added three weeks to the timeline for marginal benefit.
+
+People First: I advocated for a team member who was being given tasks outside their agreed role and skill level. After raising this with the project lead, their workload was rebalanced, their confidence improved, and their output quality increased noticeably in the following month.

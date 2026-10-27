@@ -1,0 +1,209 @@
+<!-- NOTIFICATION BANNER -->
+<div class="notification-banner" *ngIf="notification.show"
+  [class.success]="notification.type === 'success'"
+  [class.error]="notification.type === 'error'">
+  <svg *ngIf="notification.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+  <svg *ngIf="notification.type === 'error'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="15" y1="9" x2="9" y2="15"></line>
+    <line x1="9" y1="9" x2="15" y2="15"></line>
+  </svg>
+  <span>{{ notification.message }}</span>
+  <button class="notification-close" (click)="notification.show = false">✕</button>
+</div>
+
+<div class="page-container" [class.blurred]="confirmModal.open">
+
+  <!-- TOP SECTION -->
+  <div class="top-section">
+    <div class="header-row">
+      <div class="page-header">
+        <h1 class="page-title">
+          <svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="14" height="14" rx="2"></rect>
+            <rect x="7" y="7" width="14" height="14" rx="2"></rect>
+          </svg>
+          Templates
+        </h1>
+        <p class="page-subtitle">Create and manage review templates</p>
+      </div>
+      <button class="btn-add" (click)="openCreate()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Create Template
+      </button>
+    </div>
+  </div>
+
+  <!-- BOTTOM SECTION -->
+  <div class="bottom-section">
+    <div class="table-container">
+
+      <!-- Card header -->
+      <div class="card-header">
+        <div class="card-header-left">
+          <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="14" height="14" rx="2"></rect>
+            <rect x="7" y="7" width="14" height="14" rx="2"></rect>
+          </svg>
+          <span>All Templates ({{ filteredTemplates().length }}<span *ngIf="searchQuery() && filteredTemplates().length !== templates().length"> of {{ templates().length }}</span>)</span>
+        </div>
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search templates..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)" />
+          <button class="search-clear" *ngIf="searchQuery()" (click)="searchQuery.set('')" aria-label="Clear search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- LOADING -->
+      <div class="table-wrapper" *ngIf="loading()">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Template Name</th>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Sections</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let _ of [1,2,3]">
+              <td><app-skeleton width="70%" height="14px"></app-skeleton></td>
+              <td><app-skeleton width="85%" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="80px" height="22px" radius="999px"></app-skeleton></td>
+              <td><app-skeleton width="65%" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="65%" height="13px"></app-skeleton></td>
+              <td>
+                <span style="display:inline-flex; gap:8px;">
+                  <app-skeleton width="28px" height="28px" radius="6px"></app-skeleton>
+                  <app-skeleton width="28px" height="28px" radius="6px"></app-skeleton>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ERROR -->
+      <div class="state-message error-state" *ngIf="error() && !loading()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        {{ error() }}
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-wrapper" *ngIf="!loading() && !error()">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Template Name</th>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Sections</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of filteredTemplates()">
+              <td class="font-semibold">{{ t.templateName }}</td>
+              <td class="description-cell">
+                <span *ngIf="t.description; else noDesc">{{ t.description }}</span>
+                <ng-template #noDesc><span class="muted-empty">No description</span></ng-template>
+              </td>
+              <td>
+                <span class="type-badge" [ngClass]="reviewTypeBadgeClass(t.reviewType)">
+                  {{ reviewTypeLabels[t.reviewType] }}
+                </span>
+              </td>
+              <td>{{ t.questions.length }} section{{ t.questions.length === 1 ? '' : 's' }}</td>
+              <td>{{ formatDate(t.updatedAt) }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="icon-action" title="Edit" (click)="openEdit(t)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path>
+                    </svg>
+                  </button>
+                  <button class="icon-action danger" title="Delete" (click)="askDelete(t)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredTemplates().length === 0 && templates().length > 0">
+              <td colspan="6" class="no-results">
+                No templates match "<strong>{{ searchQuery() }}</strong>".
+                <a (click)="searchQuery.set('')" class="clear-link">Clear search</a>
+              </td>
+            </tr>
+            <tr *ngIf="templates().length === 0">
+              <td colspan="6" class="no-results">
+                No templates yet. Click <strong>Create Template</strong> to add one.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="confirm-overlay" *ngIf="confirmModal.open" (click)="closeConfirm()">
+  <div class="confirm-modal" (click)="$event.stopPropagation()">
+    <div class="confirm-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M3 6h18"></path>
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Delete "{{ confirmModal.name }}"?</h3>
+    <p class="confirm-sub">This template will be permanently removed. Cycles already using it keep their saved snapshots.</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="closeConfirm()">Cancel</button>
+      <button class="btn-confirm-danger"
+              (click)="confirmModal.onConfirm(); closeConfirm()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE BUILDER DRAWER (Create / Edit) -->
+<app-template-builder-drawer
+  [open]="drawerOpen()"
+  [mode]="drawerMode()"
+  [editingTemplate]="editingTemplate()"
+  (closed)="onDrawerClosed()"
+  (templateAttached)="onTemplateAttached()">
+</app-template-builder-drawer>

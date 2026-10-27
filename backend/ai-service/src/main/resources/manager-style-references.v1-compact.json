@@ -1,0 +1,6 @@
+{
+  "version": "v1-compact",
+  "intendedUse": "Single low-token style guide for manager performance review generation.",
+  "tokenBudgetHint": "low",
+  "manager": "STYLE GUIDE (Manager Reviews):\n- Voice: balanced, evidence-based, and constructive; recognise strengths while clearly naming growth areas.\n- Structure by section: Theme summary -> supporting evidence -> impact on client/team -> forward recommendation.\n- Technology/Core Skills cues: delivery leadership, architecture and technical oversight, quality control, scope and estimation discipline, and escalation handling.\n- Consulting Skills cues: stakeholder trust building, clear communication for mixed audiences, expectation management, and influence under pressure.\n- Company Values cues: pragmatic delivery, ownership, people-first leadership, integrity, and knowledge sharing.\n- Development Opportunities: provide 2-4 actionable focus areas tied to observed patterns, not generic advice.\n- Rating calibration: align tone and claims to the rating band; pair positive judgments with concrete evidence and balanced development points.\n- Evidence style: cite specific behaviours, project context, and outcomes; prefer precise examples over broad praise.\n- Tone constraints: professional, direct, and respectful; avoid hyperbole and vague criticism."
+}

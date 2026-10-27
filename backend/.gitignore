@@ -1,0 +1,36 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.swp
+*.iml
+.project
+.classpath
+.settings/
+
+# Maven / Java backend
+target/
+*.class
+*.jar
+*.war
+
+# custom scripts
+/scripts/setup_git.sh
+
+# Local secrets — never commit
+local-env.json
+
+# Local credentials, generated files and dependencies
+.env
+.env.*
+!.env.example
+.aws/
+.aws-sam/
+node_modules/
+target/
+dist/
+coverage/
+*.log

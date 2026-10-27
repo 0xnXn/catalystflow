@@ -1,0 +1,1147 @@
+<div class="mgr-page">
+
+  <!-- ── Header ────────────────────────────────────────────────────── -->
+  <div class="page-header" *ngIf="!loading">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+      <a (click)="cancel()">My Team</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+      <span>Manager Review</span>
+    </nav>
+
+    <!-- Single row: title left, employee right — both vertically centred -->
+    <div class="header-main-row">
+
+      <div class="review-heading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <div>
+          <h1>Manager 360 Review</h1>
+          <div class="review-heading-sub">{{ viewOnly ? 'View Only' : 'In Progress' }}</div>
+        </div>
+      </div>
+
+      <!-- Employee context — same row, right-aligned -->
+      <div class="emp-context" *ngIf="employeeName">
+        <div class="emp-context-avatar">{{ employeeInitials }}</div>
+        <div class="emp-context-detail">
+          <div class="emp-context-label">Reviewing</div>
+          <div class="emp-context-name">{{ employeeName }}</div>
+        </div>
+        <div class="emp-context-chips">
+          <span class="ctx-chip" [ngClass]="isSelfReviewDone() ? 'green' : 'amber'">
+            <span class="ctx-dot"></span>
+            {{ isSelfReviewDone() ? 'Self-Review Done' : 'Awaiting Self-Review' }}
+          </span>
+          <span class="ctx-chip" [ngClass]="viewOnly ? 'green' : (review?.reviewId ? 'orange' : 'grey')">
+            <span class="ctx-dot"></span>
+            {{ viewOnly ? 'Review Complete' : (review?.reviewId ? 'Draft Saved' : 'Not Started') }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Banners -->
+  <!-- Skeleton loading — mirrors the split-panel layout -->
+  <div *ngIf="loading" class="mgr-skeleton">
+
+    <!-- Skeleton: banner -->
+    <div class="skeleton-banner">
+      <app-skeleton width="260px" height="18px" radius="6px"></app-skeleton>
+      <app-skeleton width="120px" height="14px" radius="6px"></app-skeleton>
+    </div>
+
+    <!-- Skeleton: header -->
+    <div class="skeleton-header">
+      <div class="skeleton-header-left">
+        <app-skeleton width="44px" height="44px" radius="50%"></app-skeleton>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <app-skeleton width="220px" height="18px"></app-skeleton>
+          <app-skeleton width="100px" height="11px"></app-skeleton>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <app-skeleton width="38px" height="38px" radius="50%"></app-skeleton>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <app-skeleton width="140px" height="13px"></app-skeleton>
+          <app-skeleton width="100px" height="11px"></app-skeleton>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skeleton: split panels -->
+    <div class="skeleton-split">
+
+      <!-- Left panel skeleton -->
+      <div class="skeleton-panel">
+        <div class="skeleton-panel-header">
+          <app-skeleton width="180px" height="14px"></app-skeleton>
+          <app-skeleton width="70px" height="22px" radius="999px"></app-skeleton>
+        </div>
+        <div class="skeleton-panel-body">
+          <div *ngFor="let _ of [1,2,3,4]" class="skeleton-qa">
+            <app-skeleton width="90%" height="12px"></app-skeleton>
+            <app-skeleton width="100%" height="60px" radius="8px"></app-skeleton>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="skeleton-divider"></div>
+
+      <!-- Right panel skeleton -->
+      <div class="skeleton-panel">
+        <div class="skeleton-panel-header">
+          <app-skeleton width="200px" height="14px"></app-skeleton>
+        </div>
+        <div class="skeleton-panel-body">
+          <!-- Progress bar -->
+          <div style="margin-bottom:20px;">
+            <app-skeleton width="100%" height="6px" radius="999px"></app-skeleton>
+          </div>
+          <!-- Question card -->
+          <div class="skeleton-question-card">
+            <app-skeleton width="40px" height="14px"></app-skeleton>
+            <app-skeleton width="80%" height="16px"></app-skeleton>
+            <app-skeleton width="100%" height="100px" radius="8px"></app-skeleton>
+          </div>
+          <!-- Actions row -->
+          <div class="skeleton-actions">
+            <app-skeleton width="96px" height="36px" radius="8px"></app-skeleton>
+            <app-skeleton width="120px" height="36px" radius="8px"></app-skeleton>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="error-banner" *ngIf="errorMsg && !loading">{{ errorMsg }}</div>
+  <div class="readonly-banner" *ngIf="viewOnly && !loading">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+    This review has been submitted and is read-only.
+  </div>
+
+  <ng-container *ngIf="!loading && questions.length">
+
+    <!-- ── Split Layout ──────────────────────────────────────────────── -->
+    <div class="split-layout" [class.resizing]="isResizing">
+
+      <!-- Collapsed rail — whole strip is the click target -->
+      <button class="left-rail" *ngIf="leftPanelCollapsed" type="button" (click)="leftPanelCollapsed = false" title="Expand Employee Self-Review" aria-label="Expand Employee Self-Review">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+        <span class="left-rail-label">Employee Self-Review</span>
+      </button>
+
+      <!-- LEFT: Employee Self-Review -->
+      <div class="panel" [style.flex]="leftPanelPct + ' 1 0%'" [class.panel-hidden]="leftPanelCollapsed">
+        <div class="panel-header left-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Employee Self-Review</span>
+          <span class="status-chip draft" *ngIf="employeeReview?.status === 'DRAFT' || employeeReview?.status === 'IN_PROGRESS'">In Progress</span>
+          <span class="status-chip pending" *ngIf="!employeeReview">Not Submitted</span>
+        </div>
+
+        <!-- 2 main tabs (Self-Review / Peer Feedback) — collapses the prior
+             4-tab strip; the Responses ↔ AI Insights toggle below picks
+             between raw and AI-synthesised views per section. -->
+        <div class="tab-switcher" *ngIf="employeeReview && !selfReviewCollapsed">
+          <button class="tab-btn" [class.active]="mainTab === 'self'" (click)="setMainTab('self')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            Self-Review
+          </button>
+          <button class="tab-btn" [class.active]="mainTab === 'peer'" (click)="setMainTab('peer')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Peer Feedback
+            <span class="tab-count" *ngIf="!peer360Loading && peer360Reviews.length">{{ peer360Reviews.length }}</span>
+            <span class="pill-spinner" *ngIf="peer360Loading"></span>
+          </button>
+        </div>
+
+        <!-- Responses ↔ AI Insights toggle. On Self-Review this maps to
+             self_raw ↔ golden; on Peer Feedback to peer360_raw ↔
+             peer360_digest. The underlying content blocks below still key
+             off leftTab values, so this is purely a UI surface. -->
+        <div class="toggle-row" *ngIf="employeeReview && !selfReviewCollapsed">
+          <div class="toggle">
+            <button [class.active]="leftMode === 'raw'" (click)="setLeftMode('raw')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Responses
+            </button>
+            <button [class.active]="leftMode === 'ai'" (click)="setLeftMode('ai')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              AI Insights
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-body" *ngIf="!selfReviewCollapsed">
+          <!-- No review -->
+          <div class="emp-no-review" *ngIf="!employeeReview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>Employee hasn't submitted their self-review yet.</p>
+            <p class="sub">You can still save a draft of your review.</p>
+          </div>
+
+          <!-- Tab: Self Review (raw answers). Citation jump (Slice 5b): when
+               highlightedCitation targets this questionId, render the cited
+               quote inside <mark class="citation-mark"> via highlightSegments. -->
+          <div class="emp-answers" *ngIf="employeeReview && leftTab === 'self_raw'">
+            <ng-container *ngIf="employeeQuestions.length; else rawAnswers">
+              <div class="emp-qa"
+                   *ngFor="let q of employeeQuestions; let i = index"
+                   [class.cited]="isHighlightedSelf(q.questionId)">
+                <div class="emp-q-label"><span class="emp-q-num">Q{{ i + 1 }}</span><span>{{ q.text }}</span></div>
+                <ng-container *ngIf="q.type === 'rating' || q.type === 'RATING'; else textSelf">
+                  <div class="emp-stars">
+                    <ng-container *ngFor="let n of ratingArray(q.scale || 5)">
+                      <svg class="emp-star" [class.filled]="n <= +getEmployeeAnswer(q.questionId)"
+                        viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" width="16" height="16">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </ng-container>
+                    <span class="emp-star-val">{{ getEmployeeAnswer(q.questionId) }}/{{ q.scale || 5 }}</span>
+                  </div>
+                </ng-container>
+                <ng-template #textSelf>
+                  <div class="emp-a-text">
+                    <ng-container *ngIf="isHighlightedSelf(q.questionId); else plainSelf">
+                      <ng-container *ngFor="let seg of highlightSegments(getEmployeeAnswer(q.questionId), highlightedCitation?.quote)">
+                        <mark *ngIf="seg.mark" class="citation-mark">{{ seg.text }}</mark>
+                        <span *ngIf="!seg.mark">{{ seg.text }}</span>
+                      </ng-container>
+                    </ng-container>
+                    <ng-template #plainSelf>{{ getEmployeeAnswer(q.questionId) }}</ng-template>
+                  </div>
+                </ng-template>
+              </div>
+            </ng-container>
+            <ng-template #rawAnswers>
+              <div class="emp-qa"
+                   *ngFor="let ans of employeeReview.answers; let i = index"
+                   [class.cited]="isHighlightedSelf(ans.questionId)">
+                <div class="emp-q-label">Q{{ i + 1 }}</div>
+                <div class="emp-a-text">
+                  <ng-container *ngIf="isHighlightedSelf(ans.questionId); else plainRaw">
+                    <ng-container *ngFor="let seg of highlightSegments(ans.response, highlightedCitation?.quote)">
+                      <mark *ngIf="seg.mark" class="citation-mark">{{ seg.text }}</mark>
+                      <span *ngIf="!seg.mark">{{ seg.text }}</span>
+                    </ng-container>
+                  </ng-container>
+                  <ng-template #plainRaw>{{ ans.response || '—' }}</ng-template>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Tab: AI Summary (employee INSIGHTS — skim view of self review) -->
+          <div class="tab-content" *ngIf="employeeReview && leftTab === 'ai_summary'">
+            <!-- Regenerate button: always visible to the manager regardless of
+                 insights state. Hidden in viewOnly so HR / archival viewers
+                 can't fire a worker job. -->
+            <div class="ai-actions" *ngIf="!viewOnly">
+              <button class="ai-regenerate" type="button"
+                      [disabled]="insightsRetrying || insightsLoading"
+                      (click)="retryEmployeeInsights()">
+                {{ insightsRetrying || insightsLoading ? 'Regenerating…' : 'Regenerate AI Insights' }}
+              </button>
+            </div>
+            <!-- Streaming preview: Gemini's cumulative partialText, rendered
+                 plain during PROCESSING. Pre-completion render only — the
+                 structured bullets below take over on COMPLETED. -->
+            <div class="streaming-preview" *ngIf="insightsLoading && displayedInsightsStream">
+              <div class="insights-spinner"></div>
+              <div class="streaming-text">{{ displayedInsightsStream }}<span class="streaming-cursor" aria-hidden="true">▍</span></div>
+            </div>
+            <div class="insights-loading" *ngIf="insightsLoading && !displayedInsightsStream">
+              <div class="insights-spinner"></div>Loading AI insights…
+            </div>
+            <!-- ADR-5 fallback. Manager retries because the employee never sees
+                 the FAILED state — they submitted and moved on. Retry refreshes
+                 both AI Summary and Golden (one INSIGHTS job produces both). -->
+            <div class="ai-fallback" *ngIf="!insightsLoading && insightsFailed">
+              <div class="ai-fallback-icon">⚠️</div>
+              <div class="ai-fallback-title">AI summary unavailable</div>
+              <div class="ai-fallback-body">
+                The employee's self-review answers are still in the
+                <strong>Self Review</strong> tab — you can write your review without
+                the AI summary, or retry to regenerate.
+              </div>
+              <button class="ai-fallback-retry" type="button"
+                      [disabled]="insightsRetrying"
+                      (click)="retryEmployeeInsights()">
+                {{ insightsRetrying ? 'Retrying…' : 'Retry' }}
+              </button>
+            </div>
+            <div *ngIf="!insightsLoading && !insightsFailed && employeeSummary">
+              <ul class="insights-bullets">
+                <li *ngFor="let line of getSummaryLines(employeeSummary)">{{ line }}</li>
+              </ul>
+            </div>
+            <div class="insights-empty" *ngIf="!insightsLoading && !insightsFailed && !employeeSummary">
+              <p>No AI summary available for this review.</p>
+              <button class="ai-fallback-retry" type="button"
+                      [disabled]="insightsRetrying"
+                      (click)="retryEmployeeInsights()">
+                {{ insightsRetrying ? 'Generating…' : 'Generate AI Insights' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab: Golden Standard -->
+          <div class="tab-content" *ngIf="employeeReview && leftTab === 'golden'">
+            <!-- Regenerate button: always visible to the manager regardless of
+                 insights state. Hidden in viewOnly so HR / archival viewers
+                 can't fire a worker job. This is the tab the "AI Insights"
+                 toggle actually lands on (resolveLeftTab → 'golden' for self). -->
+            <div class="ai-actions" *ngIf="!viewOnly">
+              <button class="ai-regenerate" type="button"
+                      [disabled]="insightsRetrying || insightsLoading"
+                      (click)="retryEmployeeInsights()">
+                {{ insightsRetrying || insightsLoading ? 'Regenerating…' : 'Regenerate AI Insights' }}
+              </button>
+            </div>
+            <!-- Streaming preview: cumulative partialText during PROCESSING.
+                 Replaced by the structured golden render on COMPLETED. -->
+            <div class="streaming-preview" *ngIf="insightsLoading && displayedInsightsStream">
+              <div class="insights-spinner"></div>
+              <div class="streaming-text">{{ displayedInsightsStream }}<span class="streaming-cursor" aria-hidden="true">▍</span></div>
+            </div>
+            <div class="insights-loading" *ngIf="insightsLoading && !displayedInsightsStream">
+              <div class="insights-spinner"></div>Loading AI insights…
+            </div>
+            <div class="ai-fallback" *ngIf="!insightsLoading && insightsFailed">
+              <div class="ai-fallback-icon">⚠️</div>
+              <div class="ai-fallback-title">Golden review unavailable</div>
+              <div class="ai-fallback-body">
+                The employee's raw self-review is in the <strong>Self Review</strong>
+                tab; their 360 evidence is in <strong>360 Raw</strong> and
+                <strong>360 Digest</strong>. Retry to regenerate both AI Summary
+                and Golden.
+              </div>
+              <button class="ai-fallback-retry" type="button"
+                      [disabled]="insightsRetrying"
+                      (click)="retryEmployeeInsights()">
+                {{ insightsRetrying ? 'Retrying…' : 'Retry' }}
+              </button>
+            </div>
+            <div class="insights-golden-body" *ngIf="!insightsLoading && !insightsFailed && employeeGoldenMirror">
+              <div *ngFor="let section of getGoldenSections(employeeGoldenMirror)" class="golden-section">
+                <div class="golden-section-title" *ngIf="section.title">{{ section.title }}</div>
+                <div class="golden-section-text">
+                  <!-- Render each section through selfGoldenSegments so [cN]
+                       tokens become round bubbles (same chip template as the
+                       manager-composite golden; source is always 'self'
+                       for INSIGHTS-derived citations). -->
+                  <ng-container *ngFor="let seg of selfGoldenSegments(section.text)">
+                    <span *ngIf="!seg.cite">{{ seg.text }}</span>
+                    <button *ngIf="seg.cite"
+                            type="button"
+                            class="citation-chip"
+                            [class.active]="activeCitationNum === seg.num"
+                            [attr.title]="citationTooltip(seg.cite) + '\nClick to view source'"
+                            (click)="jumpToCitation(seg.cite, seg.num)">
+                      {{ seg.text }}
+                    </button>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+            <div class="insights-empty" *ngIf="!insightsLoading && !insightsFailed && !employeeGoldenMirror">
+              <p>No golden standard available for this review.</p>
+              <button class="ai-fallback-retry" type="button"
+                      [disabled]="insightsRetrying"
+                      (click)="retryEmployeeInsights()">
+                {{ insightsRetrying ? 'Generating…' : 'Generate AI Insights' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab: 360 Raw — per-peer attributed answers (manager-only; subject is forbidden server-side) -->
+          <div class="peer360-raw" *ngIf="leftTab === 'peer360_raw'">
+            <div class="insights-loading" *ngIf="peer360Loading">
+              <div class="insights-spinner"></div>Loading 360 reviews…
+            </div>
+            <div class="insights-empty" *ngIf="!peer360Loading && !peer360Reviews.length">
+              No completed 360 reviews yet for this cycle.
+            </div>
+            <div class="peer-card"
+                 *ngFor="let peer of peer360Reviews; let i = index"
+                 [class.cited]="isHighlightedPeerCard(peer.reviewId!)">
+              <div class="peer-card-header">
+                <span class="peer-author-label">Reviewer {{ i + 1 }}</span>
+                <span class="peer-status-chip">{{ peer.status }}</span>
+              </div>
+              <div class="emp-qa"
+                   *ngFor="let ans of peer.answers; let qi = index"
+                   [class.cited]="isHighlightedPeer(peer.reviewId!, ans.questionId)">
+                <div class="emp-q-label"><span class="emp-q-num">Q{{ qi + 1 }}</span><span>{{ getPeerQuestionText(ans.questionId, qi) }}</span></div>
+                <div class="emp-a-text">
+                  <ng-container *ngIf="isHighlightedPeer(peer.reviewId!, ans.questionId); else plainPeer">
+                    <ng-container *ngFor="let seg of highlightSegments(ans.response, highlightedCitation?.quote)">
+                      <mark *ngIf="seg.mark" class="citation-mark">{{ seg.text }}</mark>
+                      <span *ngIf="!seg.mark">{{ seg.text }}</span>
+                    </ng-container>
+                  </ng-container>
+                  <ng-template #plainPeer>{{ ans.response || '—' }}</ng-template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: 360 Digest — AI-clustered themes / consensus / dissent (ADR-2) -->
+          <div class="peer360-digest" *ngIf="leftTab === 'peer360_digest'">
+
+            <div class="insights-loading" *ngIf="peer360DigestState === 'loading' && !displayedDigestStream">
+              <div class="insights-spinner"></div>Clustering 360 feedback…
+            </div>
+            <!-- Streaming preview: themes / consensus / dissent prose as
+                 Gemini generates. Replaces the spinner once first chunk
+                 arrives; structured render below takes over on COMPLETED. -->
+            <div class="streaming-preview" *ngIf="peer360DigestState === 'loading' && displayedDigestStream">
+              <div class="insights-spinner"></div>
+              <div class="streaming-text">{{ displayedDigestStream }}<span class="streaming-cursor" aria-hidden="true">▍</span></div>
+            </div>
+
+            <!-- ADR-5 fallback: AI failed → never block; raw evidence is in 360 Raw. -->
+            <div class="ai-fallback" *ngIf="peer360DigestState === 'failed'">
+              <div class="ai-fallback-icon">⚠️</div>
+              <div class="ai-fallback-title">AI digest unavailable</div>
+              <div class="ai-fallback-body">
+                Your raw 360 evidence is still available in the <strong>360 Raw</strong> tab — you
+                can write your review without the AI summary.
+              </div>
+              <div class="ai-fallback-detail" *ngIf="peer360DigestError">{{ peer360DigestError }}</div>
+              <button class="ai-fallback-retry" type="button" (click)="generatePeer360Digest()">
+                Retry
+              </button>
+            </div>
+
+            <ng-container *ngIf="peer360DigestState === 'ready' && peer360Digest">
+              <div class="digest-sentiment-row">
+                <span class="digest-sentiment-label">Overall sentiment</span>
+                <span class="digest-sentiment-chip"
+                      [attr.data-sentiment]="peer360Digest.overallSentiment">
+                  {{ peer360Digest.overallSentiment }}
+                </span>
+              </div>
+
+              <div class="digest-section" *ngIf="peer360Digest.themes?.length">
+                <div class="digest-section-title">Themes</div>
+                <div class="digest-item" *ngFor="let t of peer360Digest.themes"
+                     [class.cited]="isDigestCitationMatch((t.theme || '') + ' ' + (t.summary || ''))">
+                  <div class="digest-item-head">{{ t.theme }}</div>
+                  <div class="digest-item-body" *ngIf="t.summary">{{ t.summary }}</div>
+                </div>
+              </div>
+
+              <div class="digest-section" *ngIf="peer360Digest.consensus?.length">
+                <div class="digest-section-title">Consensus</div>
+                <div class="digest-item" *ngFor="let c of peer360Digest.consensus"
+                     [class.cited]="isDigestCitationMatch(c.point)">
+                  <div class="digest-item-body">{{ c.point }}</div>
+                  <div class="digest-item-cites" *ngIf="c.reviewIds?.length">
+                    Cited by {{ c.reviewIds!.length }} {{ c.reviewIds!.length === 1 ? 'reviewer' : 'reviewers' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="digest-section" *ngIf="peer360Digest.dissent?.length">
+                <div class="digest-section-title">Dissent</div>
+                <div class="digest-item" *ngFor="let d of peer360Digest.dissent"
+                     [class.cited]="isDigestCitationMatch(d.point)">
+                  <div class="digest-item-body">{{ d.point }}</div>
+                  <div class="digest-item-cites" *ngIf="d.reviewIds?.length">
+                    Disagreed by {{ d.reviewIds!.length }} {{ d.reviewIds!.length === 1 ? 'reviewer' : 'reviewers' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="insights-empty"
+                   *ngIf="!peer360Digest.themes?.length && !peer360Digest.consensus?.length && !peer360Digest.dissent?.length">
+                No completed 360 reviews yet — the digest will populate once peers submit.
+              </div>
+
+              <button class="digest-regen-btn" type="button" (click)="generatePeer360Digest()" title="Re-run the AI digest from scratch — for after new peers submit">
+                Regenerate
+              </button>
+            </ng-container>
+
+            <div class="insights-empty" *ngIf="peer360DigestState === 'idle'">
+              <p>Generate an AI summary of this person's 360 feedback.</p>
+              <button class="ai-fallback-retry" type="button" (click)="generatePeer360Digest()">
+                Generate Digest
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Drag handle -->
+      <div class="split-resizer" *ngIf="!leftPanelCollapsed" (mousedown)="startResize($event)" title="Click to collapse · drag to resize" aria-label="Click to collapse or drag to resize">
+        <div class="resizer-bar"></div>
+        <span class="resizer-chevron" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </span>
+      </div>
+
+      <!-- RIGHT: Manager Review Form -->
+      <div class="panel" [style.flex]="(100 - leftPanelPct) + ' 1 0%'">
+        <div class="panel-header right-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>{{ rightTab === 'ai' ? 'AI Narrative' : 'Manager 360 Review Form' }}</span>
+          <div class="right-header-actions">
+            <button class="btn-export-header" (click)="exportToPdf()" title="Export review to PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Right panel tab switcher -->
+        <div class="tab-switcher">
+          <button class="tab-btn" [class.active]="rightTab === 'form'" (click)="rightTab = 'form'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Manager Review
+          </button>
+          <button class="tab-btn" [class.active]="rightTab === 'ai'" (click)="switchToAiTab()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            AI Review
+          </button>
+        </div>
+
+        <!-- AI Review tab -->
+        <div class="panel-body questions-body ai-tab-content" *ngIf="rightTab === 'ai'">
+          <div class="ai-generating-state" *ngIf="goldenLoading && !parsedGoldenReview && !displayedGoldenStream">
+            <div class="ai-generating-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <p class="ai-generating-title">Generating AI Narrative</p>
+            <p class="ai-generating-sub">Analysing self-review and peer feedback…</p>
+          </div>
+          <!-- Streaming preview: Gemini's cumulative narrative as it generates.
+               Replaces the "Generating…" placeholder once the first partialText
+               chunk arrives; structured render takes over on COMPLETED. -->
+          <div class="streaming-preview" *ngIf="goldenLoading && displayedGoldenStream">
+            <div class="insights-spinner"></div>
+            <div class="streaming-text">{{ displayedGoldenStream }}<span class="streaming-cursor" aria-hidden="true">▍</span></div>
+          </div>
+          <!-- No golden yet or failed — show generate CTA -->
+          <div class="ai-no-golden" *ngIf="!goldenLoading && !parsedGoldenReview">
+            <div class="ai-no-golden-icon" [class.ai-no-golden-icon--error]="goldenFailed">
+              <svg *ngIf="!goldenFailed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <svg *ngIf="goldenFailed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <p class="ai-no-golden-title">{{ goldenFailed ? 'Generation failed' : 'No AI narrative yet' }}</p>
+            <p class="ai-no-golden-sub">{{ goldenFailed ? 'Something went wrong. Click below to try again.' : 'Generate a narrative summary based on this manager review.' }}</p>
+            <!-- The manager review is mandatory: the narrative is generated from
+                 the manager's answers, so block generation until the review has
+                 content (and tell the manager why). -->
+            <p class="ai-no-golden-hint" *ngIf="!hasManagerReviewContent">
+              Fill in your manager review first — the AI narrative is generated from your answers.
+            </p>
+            <button class="btn-action-primary"
+                    [disabled]="!hasManagerReviewContent"
+                    [title]="hasManagerReviewContent ? 'Generate the AI narrative from your review' : 'Fill in your manager review first'"
+                    (click)="fetchManagerGolden()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              {{ goldenFailed ? 'Retry Generation' : 'Generate AI Narrative' }}
+            </button>
+          </div>
+          <ng-container *ngIf="parsedGoldenReview">
+            <ng-template #citedTextRight let-text>
+              <ng-container *ngFor="let seg of goldenSegments(text)">
+                <span *ngIf="!seg.cite">{{ seg.text }}</span>
+                <button *ngIf="seg.cite" type="button" class="citation-chip"
+                  [class.cite-self]="seg.cite.source === 'self'"
+                  [class.active]="activeCitationNum === seg.num"
+                  [attr.title]="citationTooltip(seg.cite)"
+                  (click)="jumpToCitation(seg.cite, seg.num)">{{ seg.text }}</button>
+              </ng-container>
+            </ng-template>
+            <div class="golden-header-row">
+              <span class="golden-title">AI-Generated Narrative</span>
+              <!-- Action row: Edit (view mode) OR Save/Cancel (edit mode) +
+                   Regenerate (view mode only — regenerating mid-edit would
+                   silently throw away the buffer).
+                   BUG-001: also hidden in viewOnly — a submitted/published review's
+                   AI narrative must not be regenerated or edited (mirrors the
+                   left-panel insights guard at *ngIf="!viewOnly"). -->
+              <div class="golden-actions" *ngIf="!goldenEditMode && !viewOnly">
+                <button class="golden-edit-btn"
+                        [disabled]="goldenLoading"
+                        (click)="enterGoldenEditMode()"
+                        title="Edit AI narrative before submitting">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                  </svg>
+                  Edit
+                </button>
+                <button class="golden-regen-btn"
+                        [disabled]="goldenLoading"
+                        (click)="regenerateGolden()"
+                        title="Regenerate AI narrative">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.1"></path>
+                  </svg>
+                  {{ goldenLoading ? 'Regenerating…' : 'Regenerate' }}
+                </button>
+              </div>
+              <div class="golden-actions" *ngIf="goldenEditMode">
+                <button class="golden-save-btn"
+                        [disabled]="goldenSaving"
+                        (click)="saveGoldenEdit()"
+                        title="Save edited narrative">
+                  {{ goldenSaving ? 'Saving…' : 'Save' }}
+                </button>
+                <button class="golden-cancel-btn"
+                        [disabled]="goldenSaving"
+                        (click)="cancelGoldenEdit()"
+                        title="Discard changes">
+                  Cancel
+                </button>
+              </div>
+            </div>
+            <!-- Edit error banner — surfaces 400/409/network failures so the
+                 manager can retry or correct. Buffer is preserved on error. -->
+            <div class="golden-edit-error" *ngIf="goldenEditError && goldenEditMode">
+              {{ goldenEditError }}
+            </div>
+            <!-- View mode: read-only structured render with citation chips. -->
+            <div class="insights-golden-body" *ngIf="!goldenEditMode">
+              <div class="golden-section" *ngIf="parsedGoldenReview.technologyComments">
+                <div class="golden-section-title">Technology / Core Skills <span *ngIf="parsedGoldenReview.technologyRating" class="golden-rating">{{ parsedGoldenReview.technologyRating }}/5</span></div>
+                <div class="golden-section-text"><ng-container *ngTemplateOutlet="citedTextRight; context: { $implicit: parsedGoldenReview.technologyComments }"></ng-container></div>
+              </div>
+              <div class="golden-section" *ngIf="parsedGoldenReview.consultingComments">
+                <div class="golden-section-title">Consulting <span *ngIf="parsedGoldenReview.consultingRating" class="golden-rating">{{ parsedGoldenReview.consultingRating }}/5</span></div>
+                <div class="golden-section-text"><ng-container *ngTemplateOutlet="citedTextRight; context: { $implicit: parsedGoldenReview.consultingComments }"></ng-container></div>
+              </div>
+              <div class="golden-section" *ngIf="parsedGoldenReview.companyValuesComments">
+                <div class="golden-section-title">Company Values</div>
+                <div class="golden-section-text"><ng-container *ngTemplateOutlet="citedTextRight; context: { $implicit: parsedGoldenReview.companyValuesComments }"></ng-container></div>
+              </div>
+              <div class="golden-section" *ngIf="parsedGoldenReview.developmentOpportunities">
+                <div class="golden-section-title">Development Opportunities</div>
+                <div class="golden-section-text"><ng-container *ngTemplateOutlet="citedTextRight; context: { $implicit: parsedGoldenReview.developmentOpportunities }"></ng-container></div>
+              </div>
+              <div class="golden-section" *ngIf="parsedGoldenReview.otherComments">
+                <div class="golden-section-title">Other Comments</div>
+                <div class="golden-section-text"><ng-container *ngTemplateOutlet="citedTextRight; context: { $implicit: parsedGoldenReview.otherComments }"></ng-container></div>
+              </div>
+              <div class="preview-rating" *ngIf="parsedGoldenReview.overallRating">
+                <span class="rating-label">Overall Rating</span>
+                <span class="rating-value">{{ parsedGoldenReview.overallRating }} / 5</span>
+              </div>
+            </div>
+            <!-- Edit mode: textareas per field, bound to the buffer. Citation
+                 [cN] tokens are visible in the raw text so the manager can
+                 choose whether to keep or remove them. -->
+            <div class="insights-golden-body golden-edit-body" *ngIf="goldenEditMode && goldenEditBuffer">
+              <div class="golden-section golden-edit-section">
+                <label class="golden-section-title" for="ge-tech">
+                  Technology / Core Skills
+                  <span *ngIf="goldenEditBuffer.technologyRating" class="golden-rating">{{ goldenEditBuffer.technologyRating }}/5</span>
+                </label>
+                <textarea id="ge-tech" class="golden-edit-textarea"
+                          rows="6"
+                          [disabled]="goldenSaving"
+                          [(ngModel)]="goldenEditBuffer.technologyComments"
+                          [ngModelOptions]="{standalone: true}"></textarea>
+              </div>
+              <div class="golden-section golden-edit-section">
+                <label class="golden-section-title" for="ge-consult">
+                  Consulting
+                  <span *ngIf="goldenEditBuffer.consultingRating" class="golden-rating">{{ goldenEditBuffer.consultingRating }}/5</span>
+                </label>
+                <textarea id="ge-consult" class="golden-edit-textarea"
+                          rows="6"
+                          [disabled]="goldenSaving"
+                          [(ngModel)]="goldenEditBuffer.consultingComments"
+                          [ngModelOptions]="{standalone: true}"></textarea>
+              </div>
+              <div class="golden-section golden-edit-section">
+                <label class="golden-section-title" for="ge-catalystflow">Company Values</label>
+                <textarea id="ge-catalystflow" class="golden-edit-textarea"
+                          rows="4"
+                          [disabled]="goldenSaving"
+                          [(ngModel)]="goldenEditBuffer.companyValuesComments"
+                          [ngModelOptions]="{standalone: true}"></textarea>
+              </div>
+              <div class="golden-section golden-edit-section">
+                <label class="golden-section-title" for="ge-dev">Development Opportunities</label>
+                <textarea id="ge-dev" class="golden-edit-textarea"
+                          rows="3"
+                          [disabled]="goldenSaving"
+                          [(ngModel)]="goldenEditBuffer.developmentOpportunities"
+                          [ngModelOptions]="{standalone: true}"></textarea>
+              </div>
+              <div class="golden-section golden-edit-section">
+                <label class="golden-section-title" for="ge-other">Other Comments</label>
+                <textarea id="ge-other" class="golden-edit-textarea"
+                          rows="3"
+                          [disabled]="goldenSaving"
+                          [(ngModel)]="goldenEditBuffer.otherComments"
+                          [ngModelOptions]="{standalone: true}"></textarea>
+              </div>
+              <div class="preview-rating" *ngIf="goldenEditBuffer.overallRating">
+                <span class="rating-label">Overall Rating</span>
+                <span class="rating-value">{{ goldenEditBuffer.overallRating }} / 5</span>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Manager Review form tab -->
+        <div class="panel-body questions-body" *ngIf="rightTab === 'form'">
+
+          <!-- Questions grouped by category -->
+          <ng-container *ngFor="let group of groupedQuestions">
+            <div class="section-header" *ngIf="group.category !== 'General'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              {{ group.category }}
+            </div>
+
+            <div class="question-card" *ngFor="let q of group.questions; let i = index"
+                 [id]="'mgr-q-' + q.questionId"
+                 [class.question-missing]="missingQuestionIds.has(q.questionId)">
+              <div class="question-header-row">
+                <div class="question-text">
+                  <span class="mgr-q-num">Q{{ i + 1 }}</span>{{ q.text }}<span class="req-star" *ngIf="q.required && !viewOnly"> *</span>
+                </div>
+
+                <!-- Button: "Get AI Suggestion" — text questions only -->
+                <button *ngIf="!viewOnly && (q.type === 'text' || q.type === 'TEXT')"
+                  class="btn-suggestion"
+                  [class.loading]="questionSuggestionLoading[q.questionId]"
+                  [class.substantial]="isDismissed(q.questionId)"
+                  type="button"
+                  [disabled]="questionSuggestionLoading[q.questionId] || !canRequestSuggestion(q.questionId) || isDismissed(q.questionId)"
+                  [title]="isDismissed(q.questionId) ? 'Great — you\'ve reviewed the AI suggestion' : (!isSelfReviewDone() ? 'Employee must submit their self-review first' : (!canRequestSuggestion(q.questionId) ? 'Start typing to unlock AI suggestion' : 'Get an AI suggestion for this question'))"
+                  (click)="generateSuggestion(q)">
+                  <ng-container *ngIf="!questionSuggestionLoading[q.questionId]">
+                    <!-- Good Answer — shown after dismissing suggestion -->
+                    <ng-container *ngIf="isDismissed(q.questionId)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Good Answer
+                    </ng-container>
+                    <!-- Get AI Suggestion — default state -->
+                    <ng-container *ngIf="!isDismissed(q.questionId)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                      </svg>
+                      Get AI Suggestion
+                    </ng-container>
+                  </ng-container>
+                  <ng-container *ngIf="questionSuggestionLoading[q.questionId]">
+                    <span class="btn-mini-spinner"></span>
+                    Generating…
+                  </ng-container>
+                </button>
+              </div>
+
+              <!-- AI suggestion result panel -->
+              <!-- Good answer — compact green strip -->
+              <div class="suggestion-good" *ngIf="questionSuggestions[q.questionId] && isGoodAnswer(questionSuggestions[q.questionId])">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Answer looks strong
+                <button class="suggestion-dismiss-small" (click)="dismissSuggestion(q.questionId)" title="Dismiss">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Needs improvement — full suggestion panel -->
+              <div class="suggestion-panel" *ngIf="questionSuggestions[q.questionId] && !isGoodAnswer(questionSuggestions[q.questionId])">
+                <div class="suggestion-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  AI Suggestion
+                  <button class="suggestion-dismiss" (click)="dismissSuggestion(q.questionId)" title="Dismiss">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                      <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+                <p class="suggestion-text">
+                  <ng-container *ngFor="let seg of suggestionSegments(q.questionId)">
+                    <span *ngIf="!seg.cite">{{ seg.text }}</span>
+                    <button *ngIf="seg.cite"
+                            type="button"
+                            class="citation-chip"
+                            [class.active]="activeSuggestionCitationKey === seg.key"
+                            [attr.title]="seg.cite.quote"
+                            (click)="jumpToSuggestionCitation(seg.cite, seg.key)">
+                      {{ seg.text }}
+                    </button>
+                  </ng-container>
+                </p>
+              </div>
+
+              <!-- Rate limit cooldown -->
+              <div class="suggestion-cooldown" *ngIf="cooldownRemaining[q.questionId]">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                AI is busy — try again in {{ cooldownRemaining[q.questionId] }}s
+              </div>
+
+              <!-- Suggestion error -->
+              <div class="suggestion-error" *ngIf="questionSuggestionError[q.questionId] && !cooldownRemaining[q.questionId]">
+                {{ questionSuggestionError[q.questionId] }}
+              </div>
+
+              <!-- TEXT -->
+              <ng-container *ngIf="q.type === 'text' || q.type === 'TEXT'">
+                <textarea class="q-textarea"
+                  [rows]="4"
+                  [placeholder]="q.placeholder || 'Provide specific examples…'"
+                  [(ngModel)]="responses[q.questionId]"
+                  [disabled]="viewOnly"
+                  [class.input-missing]="missingQuestionIds.has(q.questionId)"
+                  (input)="onTextAnswerChange(q.questionId); missingQuestionIds.delete(q.questionId)">
+                </textarea>
+              </ng-container>
+
+              <!-- RATING -->
+              <div class="q-rating" *ngIf="q.type === 'rating' || q.type === 'RATING'">
+                <button type="button" class="rating-star"
+                  *ngFor="let n of ratingArray(q.scale)"
+                  [class.active]="responses[q.questionId] >= n"
+                  [disabled]="viewOnly"
+                  (click)="!viewOnly && setRating(q.questionId, n); onAnswerChange()">
+                  <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </button>
+                <span class="rating-value">{{ responses[q.questionId] || 0 }} / {{ q.scale || 5 }}</span>
+              </div>
+
+              <!-- YES/NO -->
+              <div class="q-options" *ngIf="q.type === 'yes_no'">
+                <label class="option-pill">
+                  <input type="radio" [name]="q.questionId" value="yes"
+                    [(ngModel)]="responses[q.questionId]" [disabled]="viewOnly"
+                    (ngModelChange)="onAnswerChange()" />
+                  <span>Yes</span>
+                </label>
+                <label class="option-pill">
+                  <input type="radio" [name]="q.questionId" value="no"
+                    [(ngModel)]="responses[q.questionId]" [disabled]="viewOnly"
+                    (ngModelChange)="onAnswerChange()" />
+                  <span>No</span>
+                </label>
+              </div>
+
+              <!-- MULTI SELECT -->
+              <div class="q-options" *ngIf="q.type === 'multi_select' || q.type === 'MULTI_SELECT' || q.type === 'CHECKBOX'">
+                <label class="option-pill" *ngFor="let opt of q.options">
+                  <input type="checkbox"
+                    [checked]="isChecked(q.questionId, opt)"
+                    (change)="!viewOnly && toggleMulti(q.questionId, opt); onAnswerChange()"
+                    [disabled]="viewOnly" />
+                  <span>{{ opt }}</span>
+                </label>
+              </div>
+
+              <!-- SINGLE SELECT -->
+              <div class="q-options" *ngIf="q.type === 'single_select' || q.type === 'SINGLE_SELECT'">
+                <label class="option-pill" *ngFor="let opt of q.options">
+                  <input type="radio" [name]="q.questionId" [value]="opt"
+                    [(ngModel)]="responses[q.questionId]" [disabled]="viewOnly"
+                    (ngModelChange)="onAnswerChange()" />
+                  <span>{{ opt }}</span>
+                </label>
+              </div>
+
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Bottom action bar -->
+        <div class="bottom-bar">
+          <div class="autosave-status" *ngIf="autoSaveStatus && !viewOnly">
+            <ng-container *ngIf="autoSaveStatus === 'saving'">
+              <div class="autosave-spinner"></div> Saving…
+            </ng-container>
+            <ng-container *ngIf="autoSaveStatus === 'saved'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Saved {{ autoSavedAgo }}
+            </ng-container>
+            <ng-container *ngIf="autoSaveStatus === 'error'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              Save failed
+            </ng-container>
+          </div>
+          <div class="bar-spacer"></div>
+
+          <ng-container *ngIf="viewOnly">
+            <button class="btn secondary" (click)="cancel()">Close</button>
+          </ng-container>
+          <ng-container *ngIf="!viewOnly">
+            <button class="btn secondary" [disabled]="saving" (click)="save('DRAFT')">
+              {{ saving ? 'Saving…' : 'Save Draft' }}
+            </button>
+            <!-- Next → switches to AI Review tab when on form tab -->
+            <button *ngIf="rightTab === 'form'" class="btn-action-primary" (click)="switchToAiTab()">
+              Review AI Summary
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+            <!-- Submit on AI Review tab -->
+            <button *ngIf="rightTab === 'ai'"
+              class="btn-action-primary"
+              [disabled]="saving"
+              (click)="save('COMPLETED')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              {{ saving ? 'Submitting…' : 'Submit Review' }}
+            </button>
+          </ng-container>
+        </div>
+      </div>
+
+    </div>
+  </ng-container>
+
+  <div class="empty-state" *ngIf="!loading && !questions.length && !errorMsg">
+    <p>No questions available for this review.</p>
+    <button class="btn secondary" (click)="cancel()">Go Back</button>
+  </div>
+
+</div>
+
+<!-- ── Preview Modal ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showPreview" (click)="showPreview = false"></div>
+<div class="preview-modal" *ngIf="showPreview">
+
+  <!-- Toolbar -->
+  <div class="preview-toolbar">
+    <div class="preview-toolbar-left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+      </svg>
+      <span>AI Narrative Review</span>
+    </div>
+    <div class="preview-toolbar-right">
+      <button class="btn-export" (click)="exportToPdf()" title="Export to PDF">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Export PDF
+      </button>
+      <button class="modal-close" (click)="showPreview = false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Document -->
+  <div class="preview-document" id="preview-print-area">
+
+    <!-- Doc header -->
+    <div class="preview-doc-header">
+      <div class="preview-doc-top-row">
+        <div class="preview-doc-badge">MANAGER REVIEW</div>
+        <div class="preview-doc-employee" *ngIf="employeeName">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          {{ employeeName }}
+        </div>
+      </div>
+      <h2 class="preview-doc-title">{{ cycle?.cycleTitle }}</h2>
+      <div class="preview-doc-meta">
+        <span>Review Period: {{ milestoneStartDate || cycle?.startDate }} – {{ milestoneEndDate || cycle?.dueDate }}</span>
+        <span class="meta-dot">·</span>
+        <span>Status: {{ review?.status }}</span>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div class="preview-block" *ngIf="goldenLoading && !parsedGoldenReview">
+      <div class="insights-loading"><div class="insights-spinner"></div>Generating AI narrative…</div>
+    </div>
+
+    <div class="preview-block golden-block" *ngIf="parsedGoldenReview">
+      <div class="preview-block-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        AI-Generated Narrative Review
+        <button type="button" class="golden-regen-btn"
+                *ngIf="!viewOnly"
+                [disabled]="goldenLoading"
+                (click)="regenerateGolden()"
+                title="Re-run the AI narrative — use this after editing your draft answers">
+          {{ goldenLoading ? 'Regenerating…' : 'Regenerate' }}
+        </button>
+      </div>
+
+      <ng-template #citedText let-text>
+        <ng-container *ngFor="let seg of goldenSegments(text)">
+          <span *ngIf="!seg.cite">{{ seg.text }}</span>
+          <button *ngIf="seg.cite"
+                type="button"
+                class="citation-chip"
+                [class.cite-self]="seg.cite.source === 'self'"
+                [class.cite-peer]="seg.cite.source === 'peer_360'"
+                [class.active]="activeCitationNum === seg.num"
+                [attr.title]="citationTooltip(seg.cite) + '\nClick to view source'"
+                (click)="jumpToCitation(seg.cite, seg.num)">
+            {{ seg.text }}
+          </button>
+        </ng-container>
+      </ng-template>
+
+      <div class="preview-qa" *ngIf="parsedGoldenReview.technologyComments">
+        <div class="preview-q">
+          Technology / Core Skills
+          <span class="preview-rating-inline" *ngIf="parsedGoldenReview.technologyRating">
+            Rating: {{ parsedGoldenReview.technologyRating }} / 5
+          </span>
+        </div>
+        <div class="preview-a">
+          <ng-container *ngTemplateOutlet="citedText; context: { $implicit: parsedGoldenReview.technologyComments }"></ng-container>
+        </div>
+      </div>
+      <div class="preview-qa" *ngIf="parsedGoldenReview.consultingComments">
+        <div class="preview-q">
+          Consulting
+          <span class="preview-rating-inline" *ngIf="parsedGoldenReview.consultingRating">
+            Rating: {{ parsedGoldenReview.consultingRating }} / 5
+          </span>
+        </div>
+        <div class="preview-a">
+          <ng-container *ngTemplateOutlet="citedText; context: { $implicit: parsedGoldenReview.consultingComments }"></ng-container>
+        </div>
+      </div>
+      <div class="preview-qa" *ngIf="parsedGoldenReview.companyValuesComments">
+        <div class="preview-q">Company Values</div>
+        <div class="preview-a">
+          <ng-container *ngTemplateOutlet="citedText; context: { $implicit: parsedGoldenReview.companyValuesComments }"></ng-container>
+        </div>
+      </div>
+      <div class="preview-qa" *ngIf="parsedGoldenReview.developmentOpportunities">
+        <div class="preview-q">Development Opportunities for the Year Ahead</div>
+        <div class="preview-a">
+          <ng-container *ngTemplateOutlet="citedText; context: { $implicit: parsedGoldenReview.developmentOpportunities }"></ng-container>
+        </div>
+      </div>
+      <div class="preview-qa" *ngIf="parsedGoldenReview.otherComments">
+        <div class="preview-q">Other Comments</div>
+        <div class="preview-a">
+          <ng-container *ngTemplateOutlet="citedText; context: { $implicit: parsedGoldenReview.otherComments }"></ng-container>
+        </div>
+      </div>
+      <div class="preview-rating" *ngIf="parsedGoldenReview.overallRating">
+        <span class="rating-label">Overall Rating</span>
+        <span class="rating-value">{{ parsedGoldenReview.overallRating }} / 5</span>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+<!-- Submit blocker popup -->
+<div class="submit-blocker-backdrop" *ngIf="showSubmitBlockerPopup" (click)="showSubmitBlockerPopup = false">
+  <div class="submit-blocker-popup" (click)="$event.stopPropagation()">
+    <div class="submit-blocker-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="submit-blocker-title">Before you submit</h3>
+    <ul class="submit-blocker-list">
+      <li *ngFor="let b of submitBlockers">{{ b }}</li>
+    </ul>
+    <button class="submit-blocker-btn" (click)="showSubmitBlockerPopup = false">Got it</button>
+  </div>
+</div>

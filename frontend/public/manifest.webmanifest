@@ -1,0 +1,17 @@
+{
+  "name": "CatalystFlow",
+  "short_name": "CatalystFlow",
+  "theme_color": "#4A90E2",
+  "background_color": "#2E2E2E",
+  "display": "standalone",
+  "scope": "./",
+  "start_url": "./",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

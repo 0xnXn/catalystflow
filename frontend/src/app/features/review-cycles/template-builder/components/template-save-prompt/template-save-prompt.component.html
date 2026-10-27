@@ -1,0 +1,61 @@
+<div class="sp-backdrop" (click)="onBackdrop()"></div>
+
+<div class="sp-panel">
+  <div class="sp-icon-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#4A90E2" stroke-width="2" width="26" height="26">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+      <polyline points="17 21 17 13 7 13 7 21"/>
+      <polyline points="7 3 7 8 15 8"/>
+    </svg>
+  </div>
+
+  <h3 class="sp-title">{{ editMode ? 'Update template details' : 'Save template for future use?' }}</h3>
+  <p class="sp-sub">
+    {{ editMode
+        ? 'Review the template name, type, and description before saving your changes.'
+        : "Give this template a name so you can reuse it on other milestones. This step is optional." }}
+  </p>
+
+  <div class="sp-form">
+    <div class="sp-field">
+      <label class="sp-label">Template Name <span class="sp-req">*</span></label>
+      <input
+        class="sp-input"
+        [class.sp-input-error]="nameError"
+        type="text"
+        [(ngModel)]="templateName"
+        maxlength="100"
+        placeholder="e.g. Q1 Self Assessment"
+        (input)="nameError = ''">
+      <span class="sp-error" *ngIf="nameError">{{ nameError }}</span>
+    </div>
+
+    <div class="sp-field">
+      <label class="sp-label">Review Type</label>
+      <select class="sp-select" [(ngModel)]="reviewType">
+        <option *ngFor="let t of reviewTypes" [value]="t">{{ reviewTypeLabels[t] }}</option>
+      </select>
+    </div>
+
+    <div class="sp-field">
+      <label class="sp-label">Description <span class="sp-optional">(optional)</span></label>
+      <input
+        class="sp-input"
+        type="text"
+        [(ngModel)]="description"
+        maxlength="300"
+        placeholder="Short description of this template's purpose">
+    </div>
+  </div>
+
+  <div class="sp-actions">
+    <button *ngIf="!editMode" class="sp-btn-skip" type="button" (click)="onSkip()">Skip &amp; Attach Only</button>
+    <button *ngIf="editMode" class="sp-btn-skip" type="button" (click)="cancel.emit()">Cancel</button>
+    <button class="sp-btn-save" type="button" (click)="onSave()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      {{ editMode ? 'Save Changes' : 'Save Template' }}
+    </button>
+  </div>
+</div>

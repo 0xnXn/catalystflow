@@ -1,0 +1,188 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.catalystflow</groupId>
+    <artifactId>back-end</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>ai-service</artifactId>
+  <packaging>jar</packaging>
+  <name>ai-service</name>
+
+  <dependencies>
+    <!-- Lambda REST bridge — translates API Gateway HTTP events to JAX-RS -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-amazon-lambda-rest</artifactId>
+    </dependency>
+    <!-- JAX-RS implementation + Jackson JSON -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
+    </dependency>
+
+    <!-- DynamoDB — AiJobs table -->
+    <dependency>
+      <groupId>io.quarkiverse.amazonservices</groupId>
+      <artifactId>quarkus-amazon-dynamodb</artifactId>
+    </dependency>
+
+    <!-- G2 step 3: SQS client used by AiReviewService.startAnalysis() to enqueue
+         jobs for the AiWorkerFunction. Inert until the API switch in step 3. -->
+    <dependency>
+      <groupId>io.quarkiverse.amazonservices</groupId>
+      <artifactId>quarkus-amazon-sqs</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- OpenAPI spec-first code generation — scoped to AI Review tag only -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.9.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../specs/openapi.yaml</inputSpec>
+              <generatorName>jaxrs-spec</generatorName>
+              <apiPackage>com.catalystflow.ai.api</apiPackage>
+              <modelPackage>com.catalystflow.ai.model</modelPackage>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <apisToGenerate>AiReview</apisToGenerate>
+              <modelsToGenerate>AiReviewInsightsRequest,AiReviewInsightsResponse,AiReviewInsightsStatusResponse,AiReviewJobResponse,AiReviewJobStatus,AiReviewQuestionAnswer,AiReviewQuestionFeedback,AiReviewRequest,AiReviewResponse,AiReviewStatusResponse,CacheEntryDto,CacheEntryListResponse,Citation,DisciplineInfo,DisciplineSeniorityLevel,ManagerJobStatusResponse,MessageResponse</modelsToGenerate>
+              <configOptions>
+                <interfaceOnly>true</interfaceOnly>
+                <returnResponse>true</returnResponse>
+                <useTags>true</useTags>
+                <useJakartaEe>true</useJakartaEe>
+                <useBeanValidation>false</useBeanValidation>
+                <useSwaggerAnnotations>false</useSwaggerAnnotations>
+                <openApiNullable>false</openApiNullable>
+                <sourceFolder>src/main/java</sourceFolder>
+                <additionalModelTypeAnnotations>@io.quarkus.runtime.annotations.RegisterForReflection</additionalModelTypeAnnotations>
+              </configOptions>
+              <typeMappings>
+                <typeMapping>date=String</typeMapping>
+                <typeMapping>DateTime=String</typeMapping>
+              </typeMappings>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/model/*.class</exclude>
+            <exclude>**/api/*.class</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-check</id>
+            <phase>test</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <!-- Coverage history:
+                           0.49 → 0.40: Epic 5 G3 deleted sync manager methods + tests.
+                           0.40 → 0.37 (2026-05-11 AM): Slices 1–5b added ~600 lines
+                             covering composite golden corpus, Peer360 digest worker
+                             branch, schema validate→repair→throw, citation parsing,
+                             M5 analyze fix.
+                           0.37 → 0.36 (2026-05-11 PM): demo-day fixes — analyze prompt
+                             enriched (STRONG now carries per-question note),
+                             normalizeResponse gained STRONG-cap branches, JSON mime-type
+                             + token-cap bump on analyze. These branches need Gemini
+                             mocking to test.
+                           0.36 → 0.35 (2026-05-18): floor lifted as a quality-gate
+                             ratchet after adding GeminiTelemetryException unit test.
+                           0.35 → 0.40 (2026-05-23, RS-1): GeminiClient extraction +
+                             5-scenario GeminiClientTest unblocked the retry-loop /
+                             finishReason / 429 paths that were previously untestable
+                             (per AiReviewServiceRateLimitTest's closing comment).
+                             Actual bundle coverage rose to ~0.47 — ratchet to 0.40
+                             prevents regression while leaving headroom for follow-up
+                             RS-2..RS-6 / CC-1..CC-6 work. -->
+                      <minimum>0.40</minimum>
+                    </limit>
+                  </limits>
+                  <excludes>
+                    <exclude>**/model/*.class</exclude>
+                    <exclude>**/api/*.class</exclude>
+                  </excludes>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

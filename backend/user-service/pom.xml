@@ -1,0 +1,173 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.catalystflow</groupId>
+    <artifactId>back-end</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>user-service</artifactId>
+  <packaging>jar</packaging>
+  <name>user-service</name>
+
+  <dependencies>
+    <!-- Lambda REST bridge — translates API Gateway HTTP events to JAX-RS -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-amazon-lambda-rest</artifactId>
+    </dependency>
+    <!-- JAX-RS implementation + Jackson JSON (required alongside lambda-rest) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
+    </dependency>
+    <!-- Netty HTTP client — required for DynamoDbAsyncClient (parallel fan-out writes
+         in UserService.assignTeamMembers). Sync paths keep using url-connection-client. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>netty-nio-client</artifactId>
+    </dependency>
+
+    <!-- DynamoDB -->
+    <dependency>
+      <groupId>io.quarkiverse.amazonservices</groupId>
+      <artifactId>quarkus-amazon-dynamodb</artifactId>
+    </dependency>
+
+    <!-- Cognito User Pools — Quarkus extension (auto-produces CognitoIdentityProviderClient) -->
+    <dependency>
+      <groupId>io.quarkiverse.amazonservices</groupId>
+      <artifactId>quarkus-amazon-cognito-user-pools</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- OpenAPI spec-first code generation — models + API interfaces -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.9.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../specs/openapi.yaml</inputSpec>
+              <generatorName>jaxrs-spec</generatorName>
+              <apiPackage>com.catalystflow.user.api</apiPackage>
+              <modelPackage>com.catalystflow.user.model</modelPackage>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <apisToGenerate>Users</apisToGenerate>
+              <modelsToGenerate>User,PublicUser,CreateUserRequest,UpdateUserRequest,UserListResponse,MessageResponse,ErrorResponse</modelsToGenerate>
+              <configOptions>
+                <interfaceOnly>true</interfaceOnly>
+                <returnResponse>true</returnResponse>
+                <useTags>true</useTags>
+                <useJakartaEe>true</useJakartaEe>
+                <useBeanValidation>false</useBeanValidation>
+                <useSwaggerAnnotations>false</useSwaggerAnnotations>
+                <openApiNullable>false</openApiNullable>
+                <sourceFolder>src/main/java</sourceFolder>
+                <additionalModelTypeAnnotations>@io.quarkus.runtime.annotations.RegisterForReflection</additionalModelTypeAnnotations>
+              </configOptions>
+              <typeMappings>
+                <typeMapping>date=String</typeMapping>
+                <typeMapping>DateTime=String</typeMapping>
+              </typeMappings>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/model/*.class</exclude>
+            <exclude>**/api/*.class</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-check</id>
+            <phase>test</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                  </limits>
+                  <excludes>
+                    <exclude>**/model/*.class</exclude>
+                    <exclude>**/api/*.class</exclude>
+                  </excludes>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

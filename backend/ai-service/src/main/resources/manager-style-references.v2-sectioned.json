@@ -1,0 +1,19 @@
+{
+  "version": "v2-sectioned",
+  "intendedUse": "Section-level manager style snippets for selective prompt injection.",
+  "tokenBudgetHint": "medium",
+  "globalTone": "Professional, balanced, and evidence-led. Keep judgments calibrated, acknowledge strengths, and frame development areas as actionable next steps.",
+  "technologyCoreSkills": "Start with delivery and technical ownership themes, then support with examples (architecture discussions, quality gates, scope control, estimation, incident support). Tie each claim to business or delivery impact.",
+  "consultingSkills": "Highlight stakeholder management, expectation setting, communication clarity, and influence in difficult situations. Explain how behaviours changed outcomes (trust, alignment, delivery confidence).",
+  "companyValues": "Map observed behaviours to CatalystFlow values explicitly: pragmatic delivery, ownership, people leadership, integrity/transparency, and sharing expertise. Avoid value-label-only statements without evidence.",
+  "developmentOpportunities": "Provide 2-4 concrete development goals. Each goal should include target behaviour, context where it matters, and expected impact. Keep language specific and coaching-oriented.",
+  "otherComments": "Close with a calibrated overall view that synthesises strengths, key trajectory, and the most important next focus areas. Keep this concise and consistent with all prior sections.",
+  "ratingCalibration": "Ensure narrative strength matches the numeric rating. For mid ratings, include clear strengths plus meaningful growth points. For high ratings, show sustained impact and broader influence without exaggeration.",
+  "companyValuesReference": {
+    "peopleFirst": "Put people first: evaluate how the consultant enabled teammates and client stakeholders, not just technical outputs.",
+    "pragmaticDelivery": "Prioritise pragmatic delivery: highlight disciplined choices, right-sized solutions, and outcome-focused trade-offs over theoretical perfection.",
+    "sharingDeepExpertise": "Call out active knowledge sharing: mentoring, coaching, and lifting team capability through practical guidance.",
+    "integrityAboveAll": "Emphasise integrity and accountability: reliability on commitments, transparent communication, and trust-building behaviour under pressure."
+  },
+  "companyValuesUsageHint": "In companyValues and otherComments sections, map claims to specific observed behaviours that demonstrate one or more values."
+}

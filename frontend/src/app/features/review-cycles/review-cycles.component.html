@@ -1,0 +1,300 @@
+<!-- NOTIFICATION BANNER -->
+<div class="notification-banner" *ngIf="notification.show"
+  [class.success]="notification.type === 'success'"
+  [class.error]="notification.type === 'error'">
+  <svg *ngIf="notification.type === 'success'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+  <svg *ngIf="notification.type === 'error'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>
+  </svg>
+  <span>{{ notification.message }}</span>
+  <button class="notification-close" (click)="notification.show = false">&#x2715;</button>
+</div>
+
+<div class="rc-page" [class.blurred]="isCreateModalOpen || !!editTarget">
+
+  <!-- Page Header -->
+  <div class="rc-page-header">
+    <div>
+      <h1 class="rc-page-title">Review Cycles</h1>
+      <p class="rc-page-sub">Create and manage performance review cycles</p>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="rc-stats" *ngIf="!isLoading">
+    <div class="rc-stat-card">
+      <p class="rc-stat-label">Total Cycles</p>
+      <p class="rc-stat-value">{{ totalCount }}</p>
+    </div>
+    <div class="rc-stat-card">
+      <p class="rc-stat-label">Active</p>
+      <p class="rc-stat-value">{{ activeCount }}</p>
+    </div>
+    <div class="rc-stat-card">
+      <p class="rc-stat-label">Completed</p>
+      <p class="rc-stat-value">{{ completedCount }}</p>
+    </div>
+  </div>
+
+  <!-- Current & Upcoming Section -->
+  <div class="rc-section">
+    <div class="rc-section-header">
+      <h2 class="rc-section-title">Current &amp; Upcoming Cycles
+        <span class="rc-count">({{ currentCycles.length }})</span>
+      </h2>
+      <div class="rc-controls">
+        <div class="rc-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filter()" placeholder="Search cycles..." class="rc-search-input">
+        </div>
+        <button class="rc-btn-create" (click)="openCreateModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+            <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Create Cycle
+        </button>
+      </div>
+    </div>
+
+    <div class="rc-table-wrap">
+      <!-- Skeleton -->
+      <ng-container *ngIf="isLoading">
+        <table class="rc-table">
+          <thead><tr>
+            <th class="col-exp"></th>
+            <th>Cycle Name</th><th>Start Date</th><th>End Date</th>
+            <th>Status</th><th>Milestones</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+            <tr *ngFor="let _ of [1,2,3]">
+              <td><app-skeleton width="12px" height="12px" radius="2px"></app-skeleton></td>
+              <td><app-skeleton width="55%" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="80px" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="80px" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="70px" height="22px" radius="999px"></app-skeleton></td>
+              <td><app-skeleton width="90px" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="60px" height="28px" radius="6px"></app-skeleton></td>
+            </tr>
+          </tbody>
+        </table>
+      </ng-container>
+
+      <!-- Table -->
+      <table class="rc-table" *ngIf="!isLoading && currentCycles.length > 0">
+        <thead><tr>
+          <th class="col-exp"></th>
+          <th>Cycle Name</th><th>Start Date</th><th>End Date</th>
+          <th>Status</th><th>Milestones</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <ng-container *ngFor="let cycle of currentCycles">
+            <tr class="rc-row" [class.rc-row-expanded]="expandedCycleId === cycle.cycleId" (click)="toggleExpand(cycle.cycleId)">
+              <td class="col-exp">
+                <svg class="rc-chevron" [class.rc-chevron-open]="expandedCycleId === cycle.cycleId"
+                  viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" width="14" height="14">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </td>
+              <td class="rc-name">{{ cycle.cycleTitle }}</td>
+              <td class="rc-date">{{ formatDate(cycle.startDate) }}</td>
+              <td class="rc-date">{{ formatDate(cycle.dueDate) }}</td>
+              <td><span class="rc-status" [ngClass]="'rc-status-' + cycle.status.toLowerCase()">{{ cycle.status | titlecase }}</span></td>
+              <td class="rc-milestones">
+                <span class="rc-ms-count">{{ completedMilestones(cycle) }}/{{ cycle.milestones?.length ?? 0 }}</span>
+                <span class="rc-ms-label"> completed</span>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                <div class="rc-actions">
+                  <button class="rc-icon-btn" title="Edit" *ngIf="cycle.status !== 'COMPLETED'" (click)="openEditModal(cycle)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button class="rc-icon-btn rc-icon-btn-activate" title="Activate" *ngIf="cycle.status === 'SCHEDULED'" (click)="activateCycle(cycle)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                  </button>
+                  <button class="rc-icon-btn rc-icon-btn-end" title="End cycle" *ngIf="cycle.status === 'ACTIVE'" (click)="openEndConfirm(cycle)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                      <rect x="6" y="6" width="12" height="12" rx="1"></rect>
+                    </svg>
+                  </button>
+                  <button class="rc-icon-btn rc-icon-btn-delete" title="Delete"
+                    *ngIf="cycle.status === 'DRAFT' || cycle.status === 'SCHEDULED'"
+                    (click)="openDeleteConfirm(cycle)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <!-- Expanded milestones -->
+            <tr class="rc-expanded-row" *ngIf="expandedCycleId === cycle.cycleId">
+              <td colspan="7" class="rc-expanded-cell">
+                <p class="rc-ms-section-label">Milestones</p>
+                <div class="rc-ms-cards" *ngIf="cycle.milestones?.length > 0; else noMs">
+                  <div class="rc-ms-card-row" *ngFor="let m of cycle.milestones">
+                    <div class="rc-ms-circle" [class.rc-ms-circle-done]="isMilestoneDone(m, cycle.status)">
+                      <svg *ngIf="isMilestoneDone(m, cycle.status)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div class="rc-ms-info">
+                      <p class="rc-ms-name">{{ m.name }}</p>
+                      <p class="rc-ms-due">Due: {{ formatDate(m.endDate) }}
+                        <span class="rc-ms-past" *ngIf="isMilestoneDone(m, cycle.status) && cycle.status !== 'COMPLETED' && m.status !== 'COMPLETED' && m.status !== 'COMPLETE'"> · Past due</span>
+                      </p>
+                    </div>
+                    <div class="rc-ms-tags">
+                      <span class="rc-ms-tag rc-ms-tag-type" *ngIf="m.templateSnapshot?.templateName || m.templateSnapshot?.reviewType">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                        {{ m.templateSnapshot?.templateName || (m.templateSnapshot?.reviewType | titlecase) }}
+                      </span>
+                      <span class="rc-ms-tag rc-ms-tag-role" *ngIf="m.assignedRoles?.length">
+                        {{ m.assignedRoles[0] | titlecase }}s
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noMs><p class="rc-no-ms">No milestones added yet.</p></ng-template>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+
+      <div class="rc-empty" *ngIf="!isLoading && currentCycles.length === 0">
+        <p>No current or upcoming cycles.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Past Cycles Section -->
+  <div class="rc-section" *ngIf="!isLoading && pastCycles.length > 0">
+    <div class="rc-section-header">
+      <h2 class="rc-section-title">Past Cycles <span class="rc-count">({{ pastCycles.length }})</span></h2>
+    </div>
+    <div class="rc-table-wrap">
+      <table class="rc-table">
+        <thead><tr>
+          <th class="col-exp"></th>
+          <th>Cycle Name</th><th>Start Date</th><th>End Date</th>
+          <th>Status</th><th>Milestones</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <ng-container *ngFor="let cycle of pastCycles">
+            <tr class="rc-row" [class.rc-row-expanded]="expandedCycleId === cycle.cycleId" (click)="toggleExpand(cycle.cycleId)">
+              <td class="col-exp">
+                <svg class="rc-chevron" [class.rc-chevron-open]="expandedCycleId === cycle.cycleId"
+                  viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" width="14" height="14">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </td>
+              <td class="rc-name">{{ cycle.cycleTitle }}</td>
+              <td class="rc-date">{{ formatDate(cycle.startDate) }}</td>
+              <td class="rc-date">{{ formatDate(cycle.dueDate) }}</td>
+              <td><span class="rc-status rc-status-completed">{{ cycle.status | titlecase }}</span></td>
+              <td class="rc-milestones">
+                <span class="rc-ms-count">{{ completedMilestones(cycle) }}/{{ cycle.milestones?.length ?? 0 }}</span>
+                <span class="rc-ms-label"> completed</span>
+              </td>
+              <td (click)="$event.stopPropagation()">
+                <div class="rc-actions">
+                  <button class="rc-icon-btn" title="Edit" (click)="openEditModal(cycle)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr class="rc-expanded-row" *ngIf="expandedCycleId === cycle.cycleId">
+              <td colspan="7" class="rc-expanded-cell">
+                <p class="rc-ms-section-label">Milestones</p>
+                <div class="rc-ms-cards" *ngIf="cycle.milestones?.length > 0; else noMsPast">
+                  <div class="rc-ms-card-row" *ngFor="let m of cycle.milestones">
+                    <div class="rc-ms-circle" [class.rc-ms-circle-done]="isMilestoneDone(m, cycle.status)">
+                      <svg *ngIf="isMilestoneDone(m, cycle.status)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                    <div class="rc-ms-info">
+                      <p class="rc-ms-name">{{ m.name }}</p>
+                      <p class="rc-ms-due">Due: {{ formatDate(m.endDate) }}
+                        <span class="rc-ms-past" *ngIf="isMilestoneDone(m, cycle.status) && cycle.status !== 'COMPLETED' && m.status !== 'COMPLETED' && m.status !== 'COMPLETE'"> · Past due</span>
+                      </p>
+                    </div>
+                    <div class="rc-ms-tags">
+                      <span class="rc-ms-tag rc-ms-tag-type" *ngIf="m.templateSnapshot?.templateName || m.templateSnapshot?.reviewType">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                        {{ m.templateSnapshot?.templateName || (m.templateSnapshot?.reviewType | titlecase) }}
+                      </span>
+                      <span class="rc-ms-tag rc-ms-tag-role" *ngIf="m.assignedRoles?.length">
+                        {{ m.assignedRoles[0] | titlecase }}s
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noMsPast><p class="rc-no-ms">No milestones.</p></ng-template>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- No cycles at all -->
+  <div class="rc-empty-page" *ngIf="!isLoading && cycles.length === 0">
+    <p class="rc-empty-title">No review cycles yet</p>
+    <p class="rc-empty-sub">Click "Create Cycle" to get started</p>
+  </div>
+
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="confirm-overlay" *ngIf="deleteConfirm.show" (click)="closeDeleteConfirm()">
+  <div class="confirm-modal" (click)="$event.stopPropagation()">
+    <div class="confirm-icon" style="background:#fee2e2;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Delete Cycle</h3>
+    <p class="confirm-body">Delete <strong>{{ deleteConfirm.cycle?.cycleTitle }}</strong>? This cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel-confirm" (click)="closeDeleteConfirm()">Cancel</button>
+      <button class="btn-confirm-delete" (click)="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- END CYCLE CONFIRM -->
+<div class="confirm-overlay" *ngIf="endConfirm.show" (click)="closeEndConfirm()">
+  <div class="confirm-modal" (click)="$event.stopPropagation()">
+    <div class="confirm-icon" style="background:#fef3c7;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="6" width="12" height="12" rx="1"></rect>
+      </svg>
+    </div>
+    <h3 class="confirm-title">End Cycle</h3>
+    <p class="confirm-body">End <strong>{{ endConfirm.cycle?.cycleTitle }}</strong> now? Status flips to COMPLETED immediately.</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel-confirm" (click)="closeEndConfirm()">Cancel</button>
+      <button class="btn-confirm-delete" (click)="confirmEnd()">End Cycle</button>
+    </div>
+  </div>
+</div>
+
+<app-create-cycle-modal *ngIf="isCreateModalOpen" (closed)="closeCreateModal()" (submitted)="onCycleCreated($event)"></app-create-cycle-modal>
+<app-edit-cycle-modal *ngIf="editTarget" [cycle]="editTarget" (closed)="closeEditModal()" (saved)="onCycleSaved($event)"></app-edit-cycle-modal>

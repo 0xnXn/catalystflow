@@ -1,0 +1,14 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+    - ': "${FRONTEND_BUCKET:?Set the personal-account frontend bucket}"'
+    - ': "${CLOUDFRONT_DISTRIBUTION_ID:?Set the personal-account distribution}"'
+    - test -s index.html
+    - sha256sum --check artifact-checksums.txt
+  build:
+    commands:
+    - aws s3 sync . "s3://$FRONTEND_BUCKET/" --exclude "buildspec*" --exclude "artifact-checksums.txt"
+      --cache-control "no-cache"
+    - aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID"
+      --paths "/*"

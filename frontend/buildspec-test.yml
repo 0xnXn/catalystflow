@@ -1,0 +1,15 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+    - npm ci
+    - npx puppeteer browsers install chrome --install-deps
+  build:
+    commands:
+    - export CHROME_BIN=$(node -p "require('puppeteer').executablePath()")
+    - npm run test:ci -- --exclude="**/*.integration.spec.ts"
+cache:
+  paths:
+  - /root/.npm/**/*

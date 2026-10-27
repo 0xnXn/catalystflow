@@ -1,0 +1,17 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+    - npm ci
+    - npx puppeteer browsers install chrome --install-deps
+  build:
+    commands:
+    - node scripts/e2e.mjs
+artifacts:
+  files:
+  - test-results/**/*
+cache:
+  paths:
+  - /root/.npm/**/*

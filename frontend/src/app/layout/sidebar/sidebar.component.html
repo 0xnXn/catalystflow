@@ -1,0 +1,176 @@
+<aside class="sidebar bg-gray-900 min-h-screen text-gray-300 flex flex-col justify-between"
+  [class.collapsed]="isCollapsed">
+
+  <!-- Logo -->
+  <div class="logo-container p-4 flex justify-center">
+    <img *ngIf="!isCollapsed" src="/assets/catalystflow-sidebar.svg" alt="CatalystFlow" class="sidebar-logo w-32">
+    <img *ngIf="isCollapsed" src="/icon.svg" alt="CatalystFlow" class="sidebar-logo-small">
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 overflow-y-auto">
+    <ul class="nav-list px-2 space-y-1">
+
+      <!-- MY WORKSPACE -->
+      <li class="section-label px-3 py-2 text-xs uppercase text-gray-500">My Workspace</li>
+      <li class="nav-item">
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+          <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span class="nav-text">Dashboard</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a routerLink="/my-review" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+          <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span class="nav-text">My Review</span>
+        </a>
+      </li>
+      <li class="nav-item" *ngIf="isManagerOrAdmin">
+        <a routerLink="/my-team" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+          <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span class="nav-text">Team Review</span>
+        </a>
+      </li>
+
+      <!-- ADMIN -->
+      <ng-container *ngIf="isAdmin">
+        <li class="section-label px-3 py-2 text-xs uppercase text-gray-500">Admin</li>
+        <li class="nav-item">
+          <a routerLink="/ai-summary" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+            <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="nav-text">Cycle Summary</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/employees" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+            <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <polyline points="17 11 19 13 23 9"></polyline>
+            </svg>
+            <span class="nav-text">Organisation Employees</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/cycles" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+            <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+              <polyline points="22 4 22 10 16 10"></polyline>
+            </svg>
+            <span class="nav-text">Review Cycles</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/templates" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+            <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="14" height="14" rx="2"></rect>
+              <rect x="7" y="7" width="14" height="14" rx="2"></rect>
+            </svg>
+            <span class="nav-text">Templates</span>
+          </a>
+        </li>
+
+        <!-- ANALYTICS -->
+        <li class="section-label px-3 py-2 text-xs uppercase text-gray-500">Analytics</li>
+        <li class="nav-item">
+          <a routerLink="/insights" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+            <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            <span class="nav-text">Review Cycle Analytics</span>
+          </a>
+        </li>
+      </ng-container>
+
+      <!-- USER & SETTINGS -->
+      <li class="section-label px-3 py-2 text-xs uppercase text-gray-500">User & Settings</li>
+
+       <li class="nav-item">
+  <button
+    class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white w-full"
+    (click)="toggleSettings()"
+  >
+    <!-- Icon + Text -->
+    <svg class="nav-icon w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l0 0a2 2 0 0 1-2.83 2.83l0 0a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v0a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l0 0a2 2 0 0 1-2.83-2.83l0 0a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h0a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l0 0a2 2 0 0 1 2.83-2.83l0 0a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v0a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l0 0a2 2 0 0 1 2.83 2.83l0 0a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h0a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+
+    <span class="nav-text flex-1">Settings</span>
+
+    <!-- Arrow aligned right -->
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 ml-auto"
+      [ngClass]="{'rotate-180': settingsOpen}"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="m6 9 6 6 6-6"></path>
+    </svg>
+  </button>
+
+  <!-- Submenu -->
+  <ul *ngIf="settingsOpen" class="pl-7 mt-1 space-y-1">
+    <li>
+  <a routerLink="/settings/preferences" routerLinkActive="active"
+     class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white">
+    <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    <span class="nav-text">Password Management</span>
+  </a>
+</li>
+  </ul>
+</li>
+<li class="nav-item" *ngIf="isAdmin">
+        <a routerLink="/roles" routerLinkActive="active" class="nav-link flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white" (click)="onLinkClick()">
+          <svg class="nav-icon w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span class="nav-text">Role Management</span>
+        </a>
+      </li>
+
+    </ul>
+    
+  </nav>
+
+  <!-- User Info & Logout -->
+  <div class="user-section p-4 border-t border-gray-700">
+    <div class="user-info flex items-center gap-3 mb-3">
+      <img [src]="avatarUrl" alt="User Avatar" class="user-avatar w-10 h-10 rounded-full">
+      <div class="user-details">
+        <span class="user-name block text-sm font-medium">{{ displayName }}</span>
+        <span class="user-role block text-xs text-gray-400">{{ userRole }}</span>
+      </div>
+    </div>
+    <button class="logout-btn-full" (click)="logout()" title="Logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      <span class="nav-text">Logout</span>
+    </button>
+  </div>
+</aside>

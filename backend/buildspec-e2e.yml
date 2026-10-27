@@ -1,0 +1,24 @@
+version: 0.2
+env:
+  variables:
+    ASSISTANCE_ENABLED: 'false'
+  parameter-store:
+    E2E_API_URL: /catalystflow/dev/backendApiUrl
+    REVIEW_CYCLES_TABLE_NAME: /catalystflow/dev/dynamodb/reviewCyclesTable
+    REVIEW_TEMPLATES_TABLE_NAME: /catalystflow/dev/dynamodb/reviewTemplatesTable
+    REVIEWS_TABLE_NAME: /catalystflow/dev/dynamodb/reviewsTable
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  build:
+    commands:
+    - mvn -B test -f e2e-tests/pom.xml
+reports:
+  E2ETests:
+    files:
+    - e2e-tests/target/surefire-reports/TEST-*.xml
+    file-format: JUNITXML
+cache:
+  paths:
+  - /root/.m2/repository/**/*

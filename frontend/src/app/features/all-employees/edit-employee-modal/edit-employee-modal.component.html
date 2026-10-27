@@ -1,0 +1,494 @@
+<div class="modal-overlay">
+  <div class="modal-content wizard-modal">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div>
+        <h3>Edit Employee</h3>
+        <p class="wizard-step-label">Step {{ editStep }} of 2</p>
+      </div>
+      <button class="modal-close" type="button" (click)="close()">✕</button>
+    </div>
+
+    <!-- Stepper -->
+    <div class="wizard-stepper">
+      <div class="wizard-step" [class.active]="editStep === 1" [class.complete]="editStep > 1">
+        <div class="step-circle">
+          <svg *ngIf="editStep > 1" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span *ngIf="editStep <= 1">1</span>
+        </div>
+        <span class="step-label">Employee Details</span>
+      </div>
+      <div class="step-connector" [class.complete]="editStep > 1"></div>
+      <div class="wizard-step" [class.active]="editStep === 2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Reporting Structure</span>
+      </div>
+    </div>
+
+    <form #editForm="ngForm" (ngSubmit)="onEditSubmit(editForm)">
+      <div class="modal-body">
+
+        <!-- ── STEP 1: Basic Info ── -->
+        <div *ngIf="editStep === 1">
+          <div class="wizard-section-header">
+            <h4 class="wizard-section-title">Basic Information</h4>
+            <p class="wizard-section-sub">Update the employee's personal and professional details</p>
+          </div>
+
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label>First Name</label>
+              <input
+                type="text"
+                name="firstName"
+                required
+                minlength="2"
+                maxlength="50"
+                pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*"
+                cursorEnd
+                [(ngModel)]="editEmployee.firstName"
+                #editFirst="ngModel"
+                (input)="sanitizeNameField($event, editEmployee, 'firstName')"
+                [class.invalid]="editFirst.invalid && editFirst.touched">
+              <div class="field-errors" *ngIf="editFirst.touched">
+                <span class="error-msg" *ngIf="editFirst.errors?.['required']">First name is required.</span>
+                <span class="error-msg" *ngIf="editFirst.errors?.['minlength']">At least 2 characters.</span>
+                <span class="error-msg" *ngIf="editFirst.errors?.['pattern']">Only letters, spaces, hyphens, apostrophes and periods.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Last Name</label>
+              <input
+                type="text"
+                name="lastName"
+                required
+                minlength="2"
+                maxlength="50"
+                pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*"
+                cursorEnd
+                [(ngModel)]="editEmployee.lastName"
+                #editLast="ngModel"
+                (input)="sanitizeNameField($event, editEmployee, 'lastName')"
+                [class.invalid]="editLast.invalid && editLast.touched">
+              <div class="field-errors" *ngIf="editLast.touched">
+                <span class="error-msg" *ngIf="editLast.errors?.['required']">Last name is required.</span>
+                <span class="error-msg" *ngIf="editLast.errors?.['minlength']">At least 2 characters.</span>
+                <span class="error-msg" *ngIf="editLast.errors?.['pattern']">Only letters, spaces, hyphens, apostrophes and periods.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Email Address</label>
+              <input
+                type="email"
+                name="email"
+                disabled
+                [(ngModel)]="editEmployee.email"
+                class="input-disabled">
+              <p class="field-hint">Email address cannot be changed.</p>
+            </div>
+
+            <div class="form-group">
+              <label>Role Type</label>
+              <select
+                name="employeeType"
+                required
+                [(ngModel)]="editEmployee.employeeType"
+                #editEmpType="ngModel"
+                [class.invalid]="editEmpType.invalid && editEmpType.touched"
+                (ngModelChange)="onRoleTypeChange($event)">
+                <option value="Admin">Admin</option>
+                <option value="Manager">Manager</option>
+                <option value="Employee">Employee</option>
+              </select>
+              <div class="field-errors" *ngIf="editEmpType.touched">
+                <span class="error-msg" *ngIf="editEmpType.errors?.['required']">Role type is required.</span>
+              </div>
+              <span class="error-msg" *ngIf="downgradeError">{{ downgradeError }}</span>
+            </div>
+
+            <div class="form-group">
+              <label>Position</label>
+              <input
+                type="text"
+                name="role"
+                required
+                maxlength="50"
+                cursorEnd
+                [(ngModel)]="editEmployee.role"
+                #editRole="ngModel"
+                [class.invalid]="editRole.invalid && editRole.touched">
+              <div class="field-errors" *ngIf="editRole.touched">
+                <span class="error-msg" *ngIf="editRole.errors?.['required']">Position is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Discipline</label>
+              <select
+                name="discipline"
+                required
+                [(ngModel)]="editEmployee.discipline"
+                #editDiscipline="ngModel"
+                (ngModelChange)="onDisciplineChange()"
+                [class.invalid]="editDiscipline.invalid && editDiscipline.touched">
+                <option value="">Select Discipline</option>
+                <option *ngFor="let discipline of disciplines" [value]="discipline.discipline">
+                  {{ discipline.discipline }}
+                </option>
+              </select>
+              <div class="field-errors" *ngIf="editDiscipline.touched">
+                <span class="error-msg" *ngIf="editDiscipline.errors?.['required']">Discipline is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Seniority</label>
+              <select
+                name="seniority"
+                required
+                [(ngModel)]="editEmployee.seniority"
+                #editSeniority="ngModel"
+                [disabled]="!editEmployee.discipline"
+                [class.invalid]="editSeniority.invalid && editSeniority.touched">
+                <option value="">Select Seniority</option>
+                <option *ngFor="let level of seniorityLevels" [value]="level.key">
+                  {{ level.displayName }}
+                </option>
+              </select>
+              <div class="field-errors" *ngIf="editSeniority.touched">
+                <span class="error-msg" *ngIf="editSeniority.errors?.['required']">Seniority is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <select
+                name="status"
+                required
+                [(ngModel)]="editEmployee.status"
+                #editStatus="ngModel"
+                [class.invalid]="editStatus.invalid && editStatus.touched"
+                (ngModelChange)="onStatusChange($event)">
+                <option value="">Select Status</option>
+                <option value="Active">Active</option>
+                <option value="Archived">Archived</option>
+              </select>
+              <div class="field-errors" *ngIf="editStatus.touched">
+                <span class="error-msg" *ngIf="editStatus.errors?.['required']">Status is required.</span>
+              </div>
+              <span class="error-msg" *ngIf="archiveError">{{ archiveError }}</span>
+            </div>
+
+            <div class="form-group">
+              <label>Hire Date</label>
+              <input
+                type="date"
+                name="hireDate"
+                [(ngModel)]="editEmployee.hireDate"
+                [max]="today"
+                readonly
+                (click)="$any($event.target).removeAttribute('readonly')"
+                (blur)="$any($event.target).setAttribute('readonly', '')"
+                (keydown)="preventDateTyping($event)">
+              <p class="field-hint">Use the date picker. Future dates are disabled.</p>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ── STEP 2: Reporting Structure ── -->
+        <div *ngIf="editStep === 2">
+
+          <!-- Reports To -->
+          <div class="wizard-section">
+            <h4 class="wizard-section-title">Reports To</h4>
+
+            <div *ngIf="editEmployee.reportsTo && !editReportsToOpen && isValidEditReportsTo" class="chip-list">
+              <div class="manager-chip">
+                <span>{{ editEmployee.reportsTo }}</span>
+                <button type="button" (click)="clearEditReportsTo(); onEditReportsToFocus()">✕</button>
+              </div>
+            </div>
+
+            <div *ngIf="editReportsToOpen || !editEmployee.reportsTo || !isValidEditReportsTo"
+              class="autocomplete-wrapper search-input-wrapper">
+
+              <svg
+                class="search-icon-inner"
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+
+              <input
+                type="text"
+                name="reportsTo"
+                [(ngModel)]="editEmployee.reportsTo"
+                placeholder="Search manager by name..."
+                (input)="onEditReportsToInput()"
+                (focus)="onEditReportsToFocus()"
+                (blur)="onEditReportsToBlur()"
+                (keydown)="onEditReportsToKeyDown($event)"
+                autocomplete="off">
+
+              <div class="autocomplete-dropdown" *ngIf="editReportsToOpen && editReportsToMatches.length > 0">
+                <div
+                  class="autocomplete-item"
+                  *ngFor="let mgr of editReportsToMatches; let i = index"
+                  [class.highlighted]="i === editReportsToHighlight"
+                  (mousedown)="selectEditReportsTo(mgr)">
+                  <div class="member-search-item">
+                    <span [innerHTML]="highlightMatch(mgr.name, editEmployee.reportsTo)"></span>
+                    <span class="member-search-sub">{{ mgr.role }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="autocomplete-dropdown"
+                *ngIf="editReportsToOpen && editEmployee.reportsTo && editReportsToMatches.length === 0">
+                <div class="autocomplete-empty">No managers found</div>
+              </div>
+            </div>
+
+            <p class="field-hint">Only Admins and Managers are listed. Optional.</p>
+
+            <span class="error-msg"
+              *ngIf="editEmployee.reportingToId && editEmployee.reportingToId === editEmployee.userId">
+              An employee cannot report to themselves.
+            </span>
+            <span class="error-msg" *ngIf="selfReportOpen && selfReportField === 'reportsTo'">
+              {{ editEmployee.firstName }} {{ editEmployee.lastName }} cannot report to themselves.
+            </span>
+          </div>
+
+          <!-- Manages (Manager or Admin) -->
+          <div class="wizard-section" *ngIf="editEmployee.employeeType === 'Manager' || editEmployee.employeeType === 'Admin'">
+            <h4 class="wizard-section-title">Manages</h4>
+
+            <div class="autocomplete-wrapper search-input-wrapper">
+              <svg class="search-icon-inner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+
+              <input
+                type="text"
+                [(ngModel)]="editMemberSearch"
+                name="editMemberSearch"
+                placeholder="Search employee name..."
+                (input)="onEditMemberInput()"
+                (focus)="onEditMemberFocus()"
+                (blur)="onEditMemberBlur()"
+                (keydown)="onEditMemberKeyDown($event)"
+                autocomplete="off">
+
+              <button *ngIf="editMemberSearch" type="button" class="autocomplete-clear" (click)="editMemberSearch = ''; editMemberMatches = []">✕</button>
+
+              <div class="autocomplete-dropdown" *ngIf="editMemberOpen && editMemberMatches.length > 0">
+                <div
+                  class="autocomplete-item"
+                  *ngFor="let emp of editMemberMatches; let i = index"
+                  [class.highlighted]="i === editMemberHighlight"
+                  (mousedown)="selectEditMember(emp)">
+                  <div class="member-search-item">
+                    <span [innerHTML]="highlightMatch(emp.name, editMemberSearch)"></span>
+                    <span class="member-search-sub">{{ emp.role }}{{ emp.reportingToId && emp.reportingToId !== editEmployee.userId ? ' • Reports to ' + emp.reportsTo : '' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="autocomplete-dropdown" *ngIf="editMemberOpen && editMemberSearch && editMemberMatches.length === 0">
+                <div class="autocomplete-empty">No employees found</div>
+              </div>
+            </div>
+
+            <p class="field-hint">Choose employees who report to this manager.</p>
+            <span class="error-msg" *ngIf="selfReportOpen && selfReportField === 'manages'">
+              {{ editEmployee.firstName }} {{ editEmployee.lastName }} cannot manage themselves.
+            </span>
+
+            <div class="chip-list mt-12" *ngIf="editEmployee.teamMembers && editEmployee.teamMembers.length > 0">
+              <div class="member-chip" *ngFor="let m of editEmployee.teamMembers">
+                <span>{{ m.name }}</span>
+                <button type="button" (click)="removeTeamMember(m)">✕</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <ng-container *ngIf="editStep === 1">
+          <button type="button" class="btn-cancel" (click)="close()">Cancel</button>
+          <button type="button" class="btn-submit btn-arrow-right" (click)="nextEditStep(editForm)">
+            Next: Reporting Structure
+            <svg class="btn-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14"></path>
+              <path d="M12 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="editStep === 2">
+          <button type="button" class="btn-back btn-arrow-left" (click)="editStep = 1">
+            <svg class="btn-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5"></path>
+              <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            Previous
+          </button>
+          <button type="submit" class="btn-cancel" [disabled]="!hasChanges">Skip & Update</button>
+          <button type="submit" class="btn-submit" [disabled]="!hasChanges">Update Employee</button>
+        </ng-container>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- SELF REPORTING POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="selfReportOpen">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap delete">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Can't report to yourself</h3>
+    <p class="confirm-sub">
+      <strong>{{ editEmployee.firstName }} {{ editEmployee.lastName }}</strong> cannot be set as their own manager.
+      Please select a different person.
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-confirm update" (click)="closeSelfReport()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- MUTUAL REPORTING POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="mutualReportOpen">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap delete">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Reporting loop detected</h3>
+    <p class="confirm-sub">
+      <strong>{{ mutualReportName }}</strong> already reports to
+      <strong>{{ editEmployee.firstName }} {{ editEmployee.lastName }}</strong>.
+      Setting them as a manager here would create a circular reporting loop.
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-confirm update" (click)="closeMutualReport()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNGRADE BLOCK POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="downgradeBlockOpen">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap delete">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Can't downgrade yet</h3>
+    <p class="confirm-sub">
+      <strong>{{ editEmployee.firstName }} {{ editEmployee.lastName }}</strong> still manages
+      <strong>{{ downgradeActiveCount }} active employee{{ downgradeActiveCount > 1 ? 's' : '' }}</strong>.
+      Unlink them from the Team Structure first, then downgrade.
+    </p>
+    <p class="confirm-sub" style="margin-top: 8px;">Would you like to view their team now?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelDowngradeBlock()">Stay Here</button>
+      <button class="btn-confirm delete" (click)="goToTeam()">Yes, View Team</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE BLOCK POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="archiveBlockOpen">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap delete">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Can't archive yet</h3>
+    <p class="confirm-sub">
+      <strong>{{ editEmployee.firstName }} {{ editEmployee.lastName }}</strong> still manages
+      <strong>{{ archiveActiveCount }} active employee{{ archiveActiveCount > 1 ? 's' : '' }}</strong>.
+      Unlink them from the Team Structure first, then archive.
+    </p>
+    <p class="confirm-sub" style="margin-top: 8px;">Would you like to view their team now?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelArchiveBlock()">Stay Here</button>
+      <button class="btn-confirm delete" (click)="goToTeam()">Yes, View Team</button>
+    </div>
+  </div>
+</div>
+
+<!-- UNLINK CONFIRM POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="unlinkConfirmOpen">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap update">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 17H7A5 5 0 0 1 7 7"></path>
+        <path d="M15 7h2a5 5 0 0 1 4 8"></path>
+        <line x1="8" y1="12" x2="12" y2="12"></line>
+        <line x1="2" y1="2" x2="22" y2="22"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Already linked to another manager</h3>
+    <p class="confirm-sub">
+      <strong>{{ unlinkConfirmEmployee?.name }}</strong> currently reports to
+      <strong>{{ unlinkConfirmEmployee?.reportsTo }}</strong>.
+      Unlink them and add to this team?
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelUnlink()">Cancel</button>
+      <button class="btn-confirm update" (click)="confirmUnlink()">Yes, Unlink & Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- INTERNAL CONFIRM MODAL -->
+<div class="modal-overlay confirm-overlay" *ngIf="confirmPending">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap update">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+        <path d="M9 12l2 2 4-4"></path>
+      </svg>
+    </div>
+    <h3 class="confirm-title">{{ confirmMessage }}</h3>
+    <p class="confirm-sub">{{ confirmSubMessage }}</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelConfirm()">Cancel</button>
+      <button class="btn-confirm update" (click)="confirmSave()">Yes, Update</button>
+    </div>
+  </div>
+</div>

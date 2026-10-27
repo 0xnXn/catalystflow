@@ -1,0 +1,3187 @@
+openapi: 3.0.3
+
+info:
+  title: CatalystFlow API
+  description: |
+    REST API for the CatalystFlow platform — covers user management, review cycles, review templates, and reviews.
+
+    ## Authentication
+    All protected endpoints require a Cognito **ID Token** passed as a Bearer token
+    in the `Authorization` header:
+    ```
+    Authorization: Bearer <id-token>
+    ```
+    The ID Token is obtained after authenticating via the Angular frontend (SRP flow).
+    It contains the `cognito:groups` claim used for role-based access control.
+
+    ## Roles
+    | Role | Description |
+    |------|-------------|
+    | `ADMIN` | Full access to all resources |
+    | `MANAGER` | Access to own data and direct reports |
+    | `EMPLOYEE` | Access to own data only |
+  version: 1.0.0
+  contact:
+    name: CatalystFlow Backend Team
+
+servers:
+  - url: '{baseUrl}'
+    description: Paste your full API Gateway URL below
+    variables:
+      baseUrl:
+        default: https://YOUR_API_ID.execute-api.ap-southeast-2.amazonaws.com/test
+        description: >
+          Full base URL of the deployed API.
+          Example: http://localhost:3000
+
+tags:
+  - name: Users
+    description: User management, health checks, and reporting hierarchy
+
+  - name: Review Cycles
+    description: Review cycles management, health checks
+
+  - name: Review Templates
+    description: Reusable review form templates with question sets
+
+  - name: Reviews
+    description: Individual review submissions within a cycle
+
+  - name: Peer 360 Assignments
+    description: Manager-driven assignment of teammates as 360 reviewers. Creates PEER_360 review rows.
+
+  - name: AI Review
+    description: AI-powered review suggestions — analyze draft answers against seniority and discipline criteria
+
+  - name: Notifications
+    description: Reminder and notification jobs, including status polling for async email delivery
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    CognitoAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito ID Token (contains `cognito:groups` for RBAC)
+
+  # ---------------------------------------------------------------------------
+  # Schemas
+  # ---------------------------------------------------------------------------
+  schemas:
+
+  # ---------------------------------------------------------------------------
+  # User
+  # ---------------------------------------------------------------------------
+    User:
+      type: object
+      required:
+        - userId
+        - email
+        - firstName
+        - lastName
+        - role
+        - position
+        - status
+        - seniority
+        - discipline
+      properties:
+        userId:
+          type: string
+          description: Cognito sub (UUID)
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        email:
+          type: string
+          format: email
+          example: jane.doe@example.com
+        firstName:
+          type: string
+          example: Jane
+        lastName:
+          type: string
+          example: Doe
+        role:
+          type: string
+          description: One of ADMIN, MANAGER, EMPLOYEE
+          example: EMPLOYEE
+        position:
+          type: string
+          description: Job title
+          example: Software Engineer
+        status:
+          type: string
+          description: Active or Archived
+          example: Active
+        reportingTo:
+          type: string
+          description: userId of this user's direct manager (nullable)
+          example: mgr-uuid-1234
+        hireDate:
+          type: string
+          format: date
+          description: ISO date string (nullable)
+          example: "2023-06-01"
+        seniority:
+          type: string
+          description: Seniority level key used for review suggestions (e.g. "Engineer", "Senior Engineer")
+          example: Senior Engineer
+        discipline:
+          type: string
+          description: Discipline key used for review suggestions (e.g. "Software & DevOps Engineering")
+          example: "Software & DevOps Engineering"
+        updatedAt:
+          type: string
+          format: date-time
+          description: >
+            ISO-8601 timestamp of the last modification (server-set on every
+            create/update). Powers the "Last Modified" column in Role
+            Management. Nullable for legacy records created before this field
+            existed.
+          example: "2026-05-29T04:15:30Z"
+
+    PublicUser:
+      type: object
+      description: |
+        Minimal user projection safe to return to any authenticated caller.
+        Used when a non-admin/non-manager needs to resolve a display name
+        (e.g. employee rendering their own manager on the dashboard) without
+        exposing PII like email, hireDate, or reportingTo.
+      required: [userId, firstName, lastName, role]
+      properties:
+        userId:
+          type: string
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        firstName:
+          type: string
+          example: Jane
+        lastName:
+          type: string
+          example: Doe
+        role:
+          type: string
+          description: One of ADMIN, MANAGER, EMPLOYEE
+          example: MANAGER
+
+    CreateUserRequest:
+      type: object
+      required: [email, firstName, lastName, role, position, status, seniority, discipline]
+      properties:
+        email:
+          type: string
+          format: email
+          example: jane.doe@example.com
+        firstName:
+          type: string
+          maxLength: 50
+          example: Jane
+        lastName:
+          type: string
+          maxLength: 50
+          example: Doe
+        role:
+          type: string
+          description: ADMIN, MANAGER, or EMPLOYEE
+          example: EMPLOYEE
+        position:
+          type: string
+          maxLength: 100
+          example: Software Engineer
+        status:
+          type: string
+          description: Active or Archived
+          example: Active
+        reportingTo:
+          type: string
+          description: userId of the direct manager
+          example: mgr-uuid-1234
+        hireDate:
+          type: string
+          format: date
+          description: ISO date, cannot be in the future
+          example: "2023-06-01"
+        teamMembers:
+          type: array
+          description: List of userIds to assign under this manager
+          items:
+            type: string
+        seniority:
+          type: string
+          description: Seniority level key for review suggestions
+          example: Senior Engineer
+        discipline:
+          type: string
+          description: Discipline key for review suggestions
+          example: "Software & DevOps Engineering"
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 50
+          example: Jane
+        lastName:
+          type: string
+          maxLength: 50
+          example: Doe
+        role:
+          type: string
+          description: ADMIN, MANAGER, or EMPLOYEE
+          example: EMPLOYEE
+        position:
+          type: string
+          maxLength: 100
+          example: Software Engineer
+        status:
+          type: string
+          description: Active or Archived
+          example: Active
+        reportingTo:
+          type: string
+          description: userId of the direct manager
+          example: mgr-uuid-1234
+        hireDate:
+          type: string
+          format: date
+          description: ISO date, cannot be in the future
+          example: "2023-06-01"
+        teamMembers:
+          type: array
+          description: List of userIds to assign under this manager
+          items:
+            type: string
+        seniority:
+          type: string
+          description: |
+            Seniority level key for review suggestions. Required on every User
+            record, so partial updates may omit this field but MUST NOT set it
+            to an empty string — the server rejects blank values with 400.
+          example: Senior Engineer
+        discipline:
+          type: string
+          description: |
+            Discipline key for review suggestions. Required on every User
+            record, so partial updates may omit this field but MUST NOT set it
+            to an empty string — the server rejects blank values with 400.
+          example: "Software & DevOps Engineering"
+
+    # ── AI Review schemas ──────────────────────────────────────────────────────
+    AiReviewQuestionAnswer:
+      type: object
+      required: [questionId, questionText, answer]
+      properties:
+        questionId:
+          type: string
+          example: q-1
+        questionText:
+          type: string
+          example: Describe your key technical contributions this period.
+        answer:
+          type: string
+          example: I led the migration of our auth service to JWT...
+
+    AiReviewRequest:
+      type: object
+      required: [questions, seniority, discipline]
+      properties:
+        questions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AiReviewQuestionAnswer'
+        seniority:
+          type: string
+          example: Senior Engineer
+        discipline:
+          type: string
+          example: "Software & DevOps Engineering"
+
+    AiReviewInsightsRequest:
+      type: object
+      required: [questions, seniority, discipline]
+      properties:
+        questions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AiReviewQuestionAnswer'
+        seniority:
+          type: string
+          example: Senior Engineer
+        discipline:
+          type: string
+          example: "Software & DevOps Engineering"
+
+    AiReviewQuestionFeedback:
+      type: object
+      required: [questionId, questionText, verdict, suggestions]
+      properties:
+        questionId:
+          type: string
+        questionText:
+          type: string
+        verdict:
+          type: string
+          enum: [STRONG, NEEDS_IMPROVEMENT]
+        suggestions:
+          type: array
+          items:
+            type: string
+
+    AiReviewResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiReviewQuestionFeedback'
+
+    AiReviewInsightsResponse:
+      type: object
+      required: [summary, goldenMirror]
+      properties:
+        summary:
+          type: string
+          example: "- Delivered key outcomes for the team."
+        goldenMirror:
+          type: string
+          example: "TECHNOLOGY / CORE SKILLS\n[Information not provided]\n\nCONSULTING SKILLS\n[Information not provided]\n\nCATALYSTFLOW VALUES CONSISTENTLY DEMONSTRATED\n[Information not provided]"
+        citations:
+          type: object
+          description: |
+            Optional citation map. Keys (e.g. "c1") are referenced inline in
+            `goldenMirror` via `[c1]` tokens; values point back to the specific
+            self-review question whose answer supports the cited claim.
+            Frontend renders the tokens as round bubbles that, on click, jump
+            to the Self Review tab and highlight the quoted span.
+            For INSIGHTS the only valid source is "self".
+          additionalProperties:
+            $ref: '#/components/schemas/Citation'
+
+    AiReviewJobStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+
+    AiReviewJobResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          example: 4b1ca94f-2a2d-460f-87ec-ef87da31c7e2
+        status:
+          $ref: '#/components/schemas/AiReviewJobStatus'
+
+    AiReviewStatusResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          example: 4b1ca94f-2a2d-460f-87ec-ef87da31c7e2
+        status:
+          $ref: '#/components/schemas/AiReviewJobStatus'
+        result:
+          $ref: '#/components/schemas/AiReviewResponse'
+        errorMessage:
+          type: string
+          example: AI service unavailable
+
+    AiReviewInsightsStatusResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          example: 4b1ca94f-2a2d-460f-87ec-ef87da31c7e2
+        status:
+          $ref: '#/components/schemas/AiReviewJobStatus'
+        result:
+          $ref: '#/components/schemas/AiReviewInsightsResponse'
+        errorMessage:
+          type: string
+          example: AI service unavailable
+        partialText:
+          type: string
+          nullable: true
+          description: |
+            Cumulative text streamed from Gemini during PROCESSING. The worker
+            writes this field every ~500ms / 50 tokens while generating, so
+            callers polling at 1s intervals see a growing snapshot. Ignored
+            when status=COMPLETED (use `result` instead — it carries the
+            structured citation map). Cleared on FAILED transitions so a
+            half-rendered preview doesn't sit under the failure banner.
+          example: "Aarti demonstrated strong technical execution this cycle, establishing themselves as a reliable contributor…"
+
+    # ── Manager guidance schemas ──────────────────────────────────────────────
+    ReviewGuidanceResponse:
+      type: object
+      description: Coverage-gap analysis of a manager's draft review
+      properties:
+        missingAreas:
+          type: array
+          items: { type: string }
+          example: ["TECHNOLOGY: no project example given"]
+        thinAreas:
+          type: array
+          items: { type: string }
+          example: ["CONSULTING: tighten the stakeholder anecdote"]
+        wellCoveredAreas:
+          type: array
+          items: { type: string }
+          example: ["DEVELOPMENT OPPORTUNITIES"]
+        overallGuidance:
+          type: string
+          example: "Strong on values and growth; needs more concrete tech examples."
+
+    ManagerAnalyzeResult:
+      type: object
+      required: [jobId, guidance]
+      properties:
+        jobId:
+          type: string
+          example: manager-analyze-r-mgr-eli
+        guidance:
+          $ref: '#/components/schemas/ReviewGuidanceResponse'
+
+    ManagerGoldenReview:
+      type: object
+      description: |
+        Composite "golden" performance review per Anna's prescribed structure.
+        Fixed schema — identical for every employee — so admins/HR can read
+        across subjects without per-cycle rendering surprises. Ratings use the
+        1..5 scale (1 = Below Expectation, 5 = Exceeds Expectation). Worker
+        validates this shape after Gemini returns; on validation failure it
+        retries Gemini once with a repair prompt, then marks the job FAILED
+        with errorCode SCHEMA_INVALID if still invalid.
+      required:
+        - technologyRating
+        - technologyComments
+        - consultingRating
+        - consultingComments
+        - companyValuesComments
+        - developmentOpportunities
+        - otherComments
+        - overallRating
+      properties:
+        technologyRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        technologyComments:
+          type: string
+        consultingRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        consultingComments:
+          type: string
+        companyValuesComments:
+          type: string
+        developmentOpportunities:
+          type: string
+        otherComments:
+          type: string
+        overallRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        citations:
+          type: object
+          description: |
+            Optional map of citation key (e.g. "c1") → source pointer.
+            Narrative fields may embed tokens like `[c1]` which the frontend
+            renders as clickable chips. ADR-3.
+
+            Worker-side validation: every `[cN]` token in any narrative field
+            must have a matching key here, with at least `source` and
+            `reviewId` populated; otherwise the row fails validation and the
+            schema-repair retry runs.
+          additionalProperties:
+            $ref: '#/components/schemas/Citation'
+
+    Citation:
+      type: object
+      required: [source, reviewId]
+      properties:
+        source:
+          type: string
+          enum: [self, peer_360]
+        reviewId:
+          type: string
+        questionId:
+          type: string
+        quote:
+          type: string
+          description: Verbatim substring from the cited answer; frontend uses this
+            to locate and highlight the span.
+        authorUserId:
+          type: string
+          description: Manager-only — anonymous to subject. Required for peer_360.
+
+    ManagerGoldenResult:
+      type: object
+      required: [jobId, golden]
+      properties:
+        jobId:
+          type: string
+          example: manager-golden-r-mgr-eli
+        golden:
+          $ref: '#/components/schemas/ManagerGoldenReview'
+
+    Peer360Digest:
+      type: object
+      description: |
+        AI-clustered summary of every completed PEER_360 review for a single
+        (cycleId, subjectUserId) pair. Surfaced to the manager only — the
+        subject never sees this artifact (anonymity rule). Worker validates
+        this shape after Gemini returns; on failure it retries Gemini once
+        with a repair prompt, then marks the job FAILED with errorCode
+        SCHEMA_INVALID. ADR-2.
+      required: [themes, consensus, dissent, overallSentiment]
+      properties:
+        themes:
+          type: array
+          description: Recurring topics across multiple peers.
+          items:
+            type: object
+            required: [theme]
+            properties:
+              theme:
+                type: string
+                example: Delivery leadership
+              summary:
+                type: string
+        consensus:
+          type: array
+          description: Claims supported by two or more peers.
+          items:
+            type: object
+            required: [point]
+            properties:
+              point:
+                type: string
+              reviewIds:
+                type: array
+                items: { type: string }
+        dissent:
+          type: array
+          description: Claims where peers genuinely disagree.
+          items:
+            type: object
+            required: [point]
+            properties:
+              point:
+                type: string
+              reviewIds:
+                type: array
+                items: { type: string }
+        overallSentiment:
+          type: string
+          enum: [positive, mixed, constructive, concerning]
+
+    QuestionSuggestRequest:
+      type: object
+      required:
+        - questionId
+        - questionText
+        - managerCurrentAnswer
+        - discipline
+        - seniority
+        - employeeReview
+      properties:
+        questionId:
+          type: string
+          example: q-001
+        questionText:
+          type: string
+          example: What did you deliver this cycle?
+        managerCurrentAnswer:
+          type: string
+          example: Delivered key improvements and supported release quality.
+        discipline:
+          type: string
+          example: Software & DevOps Engineering
+        seniority:
+          type: string
+          example: Engineer
+        employeeReview:
+          $ref: '#/components/schemas/QuestionSuggestEmployeeReview'
+        peerDigest:
+          $ref: '#/components/schemas/QuestionSuggestPeerDigest'
+
+    QuestionSuggestEmployeeReview:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuestionSuggestEmployeeAnswer'
+        overallComment:
+          type: string
+          nullable: true
+        overallRating:
+          type: string
+          nullable: true
+
+    QuestionSuggestEmployeeAnswer:
+      type: object
+      required: [questionId, questionText, response]
+      properties:
+        questionId:
+          type: string
+        questionText:
+          type: string
+        response:
+          type: string
+
+    QuestionSuggestPeerDigest:
+      type: object
+      properties:
+        themes:
+          type: array
+          items: { type: string }
+        consensus:
+          type: array
+          items: { type: string }
+        dissent:
+          type: array
+          items: { type: string }
+        overallSentiment:
+          type: string
+          enum: [positive, mixed, constructive, concerning]
+
+    SuggestionCitation:
+      type: object
+      required: [source, quote]
+      properties:
+        source:
+          type: string
+          enum: [self, peer_360, peer_digest]
+        reviewId:
+          type: string
+          nullable: true
+          description: Required when source is peer_360.
+        questionId:
+          type: string
+          nullable: true
+          description: Required when source is self or peer_360.
+        quote:
+          type: string
+        section:
+          type: string
+          nullable: true
+        authorUserId:
+          type: string
+          nullable: true
+
+    QuestionSuggestResult:
+      type: object
+      required: [isGoodAnswer, suggestion, citations]
+      properties:
+        isGoodAnswer:
+          type: boolean
+        suggestion:
+          type: string
+          example: "The answer is relevant but can be strengthened with measurable outcomes [c1]."
+        citations:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SuggestionCitation'
+
+    ManagerJobStatusResponse:
+      type: object
+      description: |
+        Loose-typed status wrapper for any manager-flow AI job. The result
+        shape depends on the originating taskType:
+        MANAGER_GOLDEN  → ManagerGoldenReview,
+        MANAGER_QUESTION_SUGGEST → QuestionSuggestResult,
+        PEER_360_DIGEST → Peer360Digest.
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+        status:
+          $ref: '#/components/schemas/AiReviewJobStatus'
+        result:
+          type: object
+          description: Opaque — frontend casts based on which start* enqueued it.
+        errorMessage:
+          type: string
+
+    DisciplineSeniorityLevel:
+      type: object
+      properties:
+        key:
+          type: string
+          example: Senior Engineer
+        displayName:
+          type: string
+          example: Senior Software Engineer
+
+    DisciplineInfo:
+      type: object
+      properties:
+        discipline:
+          type: string
+          example: "Software & DevOps Engineering"
+        levels:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisciplineSeniorityLevel'
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: User created
+        userId:
+          type: string
+          description: Returned on user creation
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+    # ── CC-6: Gemini cache admin response types ─────────────────────────────
+    CacheEntryDto:
+      type: object
+      description: |
+        Wire view of one CatalystFlow_GeminiContextCache row. Fields mirror
+        the DDB schema. `cacheName` is the Gemini cachedContents/<id>
+        resource for CACHE entries; for UNDER_THRESHOLD entries it carries
+        the sentinel `[under-threshold]` for forensic visibility — admin
+        DELETE skips the Gemini call for those rows.
+      properties:
+        cacheKey:
+          type: string
+          example: "ANALYZE#ANALYZE_V2#abc123def456#Software & DevOps Engineering#Engineer"
+        cacheName:
+          type: string
+          example: "cachedContents/xyz789"
+        taskType:
+          type: string
+          enum: [ANALYZE, INSIGHTS, MANAGER_GOLDEN, MANAGER_QUESTION_SUGGEST, PEER_360_DIGEST]
+        promptVersion:
+          type: string
+          example: ANALYZE_V2
+        contentHash:
+          type: string
+          example: 0123456789abcdef
+        discipline:
+          type: string
+          nullable: true
+          example: "Software & DevOps Engineering"
+        seniority:
+          type: string
+          nullable: true
+          example: Engineer
+        createdAt:
+          type: integer
+          format: int64
+          description: Epoch seconds when the entry was written
+        expiresAt:
+          type: integer
+          format: int64
+          description: Epoch seconds — DDB TTL deletes the row at this time
+        cachedTokens:
+          type: integer
+          nullable: true
+          description: |
+            For CACHE entries — Gemini's reported cached token count at
+            create time. For UNDER_THRESHOLD entries — the actual token
+            count that fell short of MIN_CACHEABLE_TOKENS (informational).
+        entryType:
+          type: string
+          enum: [CACHE, UNDER_THRESHOLD]
+          description: |
+            Discriminator added in CC-4b round-2. `CACHE` rows point at a
+            live Gemini cachedContents resource; `UNDER_THRESHOLD` rows
+            are tombstones memoising the "too small to cache" decision.
+            Admin DELETE skips Gemini DELETE for the latter.
+
+    CacheEntryListResponse:
+      type: object
+      description: |
+        Row inventory of the Gemini context-cache table. Does NOT include
+        per-entry hit-rate or hit-count — see the `listCacheEntries`
+        endpoint description for why and where to read hit-rate
+        (CloudWatch `CatalystFlow/AI/CacheHit`). If per-entry hit tracking
+        is added in a follow-up, fields will be appended (additive — no
+        breaking change).
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/CacheEntryDto'
+        count:
+          type: integer
+          description: Total entries returned in this response (size of entries[])
+
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        count:
+          type: integer
+          description: Number of users in the list (included in team responses)
+          example: 2
+
+  # ---------------------------------------------------------------------------
+  # Cycles
+  # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Templates
+  # ---------------------------------------------------------------------------
+    TemplateQuestion:
+      type: object
+      required: [questionId, text, type, required, order]
+      properties:
+        questionId:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        text:
+          type: string
+          maxLength: 500
+          example: How effectively did the employee meet their goals?
+        type:
+          type: string
+          enum: [TEXT, RATING, CHECKBOX, SINGLE_SELECT, MULTI_SELECT]
+          example: RATING
+        options:
+          type: array
+          items:
+            type: string
+          description: Answer options for CHECKBOX, SINGLE_SELECT, MULTI_SELECT types
+          example: ["Exceeds Expectations", "Meets Expectations", "Below Expectations"]
+        required:
+          type: boolean
+          example: true
+        order:
+          type: integer
+          minimum: 1
+          example: 1
+        idealResponse:
+          type: string
+          description: AI rubric guidance for scoring — future feature
+          example: A rating of 4 or above indicates strong goal alignment
+
+    TemplateSnapshot:
+      type: object
+      description: >
+        Frozen copy of a template attached to a milestone at the time of
+        assignment. Immutable — changes to the source template do not propagate.
+      properties:
+        templateId:
+          type: string
+          description: Source template ID (null when built without saving)
+          example: tmpl-a1b2c3d4
+        templateName:
+          type: string
+          description: Template name at snapshot time
+          example: Q1 Self Review
+        reviewType:
+          type: string
+          enum: [SELF, PEER_360, MANAGER]
+          example: SELF
+        description:
+          type: string
+          example: Standard self-assessment questions for quarterly reviews
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateQuestion'
+        snapshotCreatedAt:
+          type: string
+          format: date-time
+          example: "2026-04-25T10:30:00"
+
+    ReviewTemplate:
+      type: object
+      properties:
+        templateId:
+          type: string
+          format: uuid
+          example: tmpl-a1b2c3d4
+        templateName:
+          type: string
+          maxLength: 100
+          example: Q1 Self Review
+        reviewType:
+          type: string
+          enum: [SELF, PEER_360, MANAGER]
+          example: SELF
+        description:
+          type: string
+          maxLength: 300
+          example: Standard self-assessment questions for quarterly reviews
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateQuestion'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-25T10:30:00"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-04-25T10:30:00"
+        lastUsedAt:
+          type: string
+          format: date-time
+          description: Last time this template was attached to a milestone
+          example: "2026-04-25T10:30:00"
+        usageCount:
+          type: integer
+          description: Number of times this template has been attached
+          example: 3
+
+    CreateReviewTemplateRequest:
+      type: object
+      required: [templateName, reviewType, questions]
+      properties:
+        templateName:
+          type: string
+          maxLength: 100
+          example: Q1 Self Review
+        reviewType:
+          type: string
+          enum: [SELF, PEER_360, MANAGER]
+          example: SELF
+        description:
+          type: string
+          maxLength: 300
+          example: Standard self-assessment questions for quarterly reviews
+        questions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemplateQuestion'
+
+    UpdateReviewTemplateRequest:
+      type: object
+      properties:
+        templateName:
+          type: string
+          maxLength: 100
+          example: Q1 Self Review Updated
+        reviewType:
+          type: string
+          enum: [SELF, PEER_360, MANAGER]
+          example: SELF
+        description:
+          type: string
+          maxLength: 300
+        questions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemplateQuestion'
+
+    ReviewTemplateListResponse:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewTemplate'
+        count:
+          type: integer
+          example: 5
+
+    ReviewTemplateMessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Template created
+        templateId:
+          type: string
+          example: tmpl-a1b2c3d4
+
+    TemplateNameCheckResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+          description: true if the name is not already taken
+          example: true
+
+  # ---------------------------------------------------------------------------
+  # Cycles (updated)
+  # ---------------------------------------------------------------------------
+    Milestone:
+      type: object
+      properties:
+        milestoneId:
+          type: string
+          example: m1
+        name:
+          type: string
+          example: Self Review
+        assignedRoles:
+          type: array
+          items:
+            type: string
+          example: [EMPLOYEE]
+        startDate:
+          type: string
+          description: Stored/output as dd/MM/yyyy
+          example: "01/06/2026"
+        endDate:
+          type: string
+          description: Stored/output as dd/MM/yyyy
+          example: "10/06/2026"
+        status:
+          type: string
+          enum: [NOT_STARTED, OPEN, IN_PROGRESS, COMPLETED]
+          example: NOT_STARTED
+        extensionDays:
+          type: integer
+          example: 0
+        templateSnapshot:
+          $ref: '#/components/schemas/TemplateSnapshot'
+          description: Frozen copy of the template assigned to this milestone
+
+    ReviewCycle:
+      type: object
+      properties:
+        cycleId:
+          type: string
+          example: r1aln31oinr
+        cycleTitle:
+          type: string
+          example: Q1 2026
+        templateId:
+          type: string
+          example: template-001
+        startDate:
+          type: string
+          example: "01/06/2026"
+        dueDate:
+          type: string
+          example: "30/06/2026"
+        status:
+          type: string
+          enum: [DRAFT, SCHEDULED, ACTIVE, COMPLETED]
+          example: DRAFT
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Milestone'
+
+    CreateReviewCycleRequest:
+      type: object
+      properties:
+        cycleTitle:
+          type: string
+          example: Q1 2026
+        templateId:
+          type: string
+          example: template-001
+        startDate:
+          type: string
+          description: Accepts yyyy-MM-dd, dd/MM/yyyy, yyyy/MM/dd
+          example: "2026-06-01"
+        dueDate:
+          type: string
+          description: Accepts yyyy-MM-dd, dd/MM/yyyy, yyyy/MM/dd
+          example: "2026-06-30"
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Milestone'
+
+    UpdateReviewCycleRequest:
+      type: object
+      properties:
+        cycleTitle:
+          type: string
+          example: Q1 2026 Updated
+        templateId:
+          type: string
+          example: template-002
+        startDate:
+          type: string
+          example: "2026-06-01"
+        dueDate:
+          type: string
+          example: "2026-07-05"
+        status:
+          type: string
+          enum: [DRAFT, SCHEDULED, ACTIVE, COMPLETED]
+        milestones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Milestone'
+
+    ReviewCycleMessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Review cycle created
+        cycleId:
+          type: string
+          description: Returned on cycle creation
+          example: r1aln31oinr
+
+    ReviewCycleListResponse:
+      type: object
+      properties:
+        cycles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewCycle'
+        count:
+          type: integer
+          example: 3
+
+  # ---------------------------------------------------------------------------
+  # Reviews
+  # ---------------------------------------------------------------------------
+    Review:
+      type: object
+      properties:
+        reviewId:
+          type: string
+        cycleId:
+          type: string
+        templateId:
+          type: string
+        subjectUserId:
+          type: string
+        authorUserId:
+          type: string
+        reviewType:
+          type: string
+          enum: [SELF, PEER_360, MANAGER]
+        status:
+          type: string
+          enum: [NOT_STARTED, DRAFT, IN_PROGRESS, COMPLETED, PUBLISHED]
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewAnswer'
+        overallRating:
+          type: string
+        overallComment:
+          type: string
+        insightsJobId:
+          type: string
+          description: Latest AI insights job pointer. The insights payload remains in AiJobs.
+        analyzeJobId:
+          type: string
+          description: |
+            Latest AI ANALYZE job pointer for the "Get Suggestions" feature on
+            the self-review form. The suggestion payload remains in AiJobs;
+            persisted so refreshing the page rehydrates prior suggestions
+            instead of forcing the user to re-run the analysis.
+        peer360DigestJobId:
+          type: string
+          description: |
+            Latest PEER_360_DIGEST job pointer for the (cycleId, subjectUserId)
+            this review belongs to. Persisted on the MANAGER review row to
+            avoid regenerating the digest on every tab open (ADR-6).
+        managerGoldenJobId:
+          type: string
+          description: |
+            Latest MANAGER_GOLDEN job pointer for this manager review.
+            Persisted so the AI Review tab polls the existing job instead
+            of firing a fresh Gemini call on every tab open (ADR-6).
+        submittedAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        publishedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        version:
+          type: integer
+
+    ReviewAnswer:
+      type: object
+      properties:
+        questionId:
+          type: string
+        response:
+          description: String, number, boolean, or list depending on question type
+
+    CreateReviewRequest:
+      type: object
+      required: [cycleId, templateId, subjectUserId, authorUserId, reviewType]
+      properties:
+        cycleId:
+          type: string
+          example: cycle-Q1-2026
+        templateId:
+          type: string
+          example: tmpl-standard
+        subjectUserId:
+          type: string
+          example: alice-id
+        authorUserId:
+          type: string
+          example: alice-id
+        reviewType:
+          type: string
+          enum: [SELF, PEER_360, MANAGER]
+          example: SELF
+
+    UpdateReviewRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [DRAFT, IN_PROGRESS, COMPLETED]
+        version:
+          type: integer
+          description: Current version for optimistic locking
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewAnswer'
+        overallRating:
+          type: string
+        overallComment:
+          type: string
+        insightsJobId:
+          type: string
+          description: Latest AI insights job pointer. The insights payload remains in AiJobs.
+        analyzeJobId:
+          type: string
+          description: |
+            Latest AI ANALYZE job pointer. Sent by the frontend after a
+            successful "Get Suggestions" click on the self-review form so
+            subsequent page loads rehydrate prior suggestions instead of
+            re-firing Gemini.
+        peer360DigestJobId:
+          type: string
+          description: |
+            Latest PEER_360_DIGEST job pointer (manager review only). Sent by
+            the frontend after a successful digest generate so subsequent
+            manager visits poll the existing job instead of re-firing Gemini.
+        managerGoldenJobId:
+          type: string
+          description: |
+            Latest MANAGER_GOLDEN job pointer. Sent by the frontend after a
+            successful "Generate AI Narrative" click so subsequent AI Review
+            tab opens poll the existing job instead of re-firing Gemini.
+
+    PublishBundleRequest:
+      type: object
+      required: [cycleId, subjectUserId]
+      properties:
+        cycleId:
+          type: string
+          example: cycle-Q1-2026
+        subjectUserId:
+          type: string
+          example: alice-id
+
+    PublishBundleResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Bundle published successfully
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        notificationJobs:
+          type: array
+          description: |
+            Pollable notification jobs created for employees whose review bundle
+            was published. A single-subject publish returns one item; bulk
+            publish flows can return one item per subject.
+          items:
+            $ref: '#/components/schemas/NotificationJobSummary'
+
+    NotificationJobStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED, SKIPPED]
+
+    NotificationTaskType:
+      type: string
+      enum: [AUTO_DEADLINE_REMINDER_DIGEST, MANUAL_REMINDER, REVIEW_PUBLISHED]
+
+    ManualReminderTargetType:
+      type: string
+      enum: [SELF_REVIEW_SUBJECT, PEER_REVIEW_EMPLOYEE, MANAGER_REVIEW_MANAGER]
+
+    ManualReminderRequest:
+      type: object
+      required: [cycleId, targetType, subjectUserIds]
+      properties:
+        cycleId:
+          type: string
+        targetType:
+          $ref: '#/components/schemas/ManualReminderTargetType'
+        subjectUserIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        message:
+          type: string
+          maxLength: 1000
+          description: Optional manager/admin note included in the reminder email.
+
+    NotificationJobSummary:
+      type: object
+      properties:
+        jobId:
+          type: string
+        taskType:
+          $ref: '#/components/schemas/NotificationTaskType'
+        status:
+          $ref: '#/components/schemas/NotificationJobStatus'
+        reviewId:
+          type: string
+          nullable: true
+          description: Present when the notification is tied to a concrete review row. Manual self-review reminders may omit this when the employee has not started and no SELF review row exists yet. Auto event reminders for cycle and milestone dates do not carry a reviewId.
+        recipientUserId:
+          type: string
+        materialized:
+          type: boolean
+          description: False when a deterministic job ID has been returned before the async intent handler has written the job row.
+
+    ManualReminderSkippedItem:
+      type: object
+      properties:
+        jobId:
+          type: string
+        reviewId:
+          type: string
+          nullable: true
+          description: Present when the skipped item is tied to a concrete review row. Manual self-review reminders may have no reviewId when the employee has not started yet. Auto event reminders for cycle and milestone dates do not carry a reviewId.
+        recipientUserId:
+          type: string
+        reason:
+          type: string
+          enum: [ALREADY_REMINDED_TODAY, NO_REVIEW_FOUND, NOT_REMINDABLE, FORBIDDEN]
+        status:
+          $ref: '#/components/schemas/NotificationJobStatus'
+
+    ManualReminderResponse:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationJobSummary'
+        skipped:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManualReminderSkippedItem'
+
+    NotificationJobStatusResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        taskType:
+          $ref: '#/components/schemas/NotificationTaskType'
+        status:
+          $ref: '#/components/schemas/NotificationJobStatus'
+        errorMessage:
+          type: string
+          nullable: true
+        attemptCount:
+          type: integer
+        result:
+          type: object
+          additionalProperties: true
+        materialized:
+          type: boolean
+
+    ManagerGateSelfReview:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [NOT_STARTED, DRAFT, IN_PROGRESS, COMPLETED, PUBLISHED]
+        reviewId:
+          type: string
+          nullable: true
+
+    ManagerGatePeer360:
+      type: object
+      required: [required, totalAssigned, completedCount, incompleteAuthorUserIds]
+      properties:
+        required:
+          type: boolean
+          description: |
+            True iff the cycle has at least one milestone whose templateSnapshot.reviewType
+            is PEER_360. When true, the gate stays closed until ≥1 PEER_360 row exists AND
+            all of them are COMPLETED. When false, the empty-set is acceptable.
+        totalAssigned:
+          type: integer
+        completedCount:
+          type: integer
+        incompleteAuthorUserIds:
+          type: array
+          items:
+            type: string
+
+    ManagerGateReason:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [self_missing, self_incomplete, peer360_incomplete, peer360_unassigned]
+        missingCount:
+          type: integer
+          nullable: true
+        currentStatus:
+          type: string
+          nullable: true
+
+    ManagerGateStatus:
+      type: object
+      required: [open, cycleId, subjectUserId, selfReview, peer360, reasons]
+      properties:
+        open:
+          type: boolean
+        cycleId:
+          type: string
+        subjectUserId:
+          type: string
+        selfReview:
+          $ref: '#/components/schemas/ManagerGateSelfReview'
+        peer360:
+          $ref: '#/components/schemas/ManagerGatePeer360'
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagerGateReason'
+
+    CreatePeer360AssignmentsRequest:
+      type: object
+      required: [subjectUserId, authorUserIds, templateId]
+      properties:
+        subjectUserId:
+          type: string
+        authorUserIds:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 10
+        templateId:
+          type: string
+
+    Peer360AssignmentResult:
+      type: object
+      required: [created, skipped, all]
+      properties:
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        skipped:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        all:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+
+  parameters:
+    reviewId:
+      name: reviewId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: 3f5a9c1d-abc1-4e2b-b123-000000000001
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+  /users/health:
+    get:
+      tags: [Users]
+      summary: User Service health check
+      description: Returns the health status of the User Service Lambda. No authentication required.
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: User Service is Online
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users
+      description: |
+        Returns all users in the system. Supports optional role filter.
+
+        **Required role:** `ADMIN`
+      operationId: listUsers
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by role (ADMIN, MANAGER, or EMPLOYEE)
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '400':
+          description: Invalid role filter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+    post:
+      tags: [Users]
+      summary: Create a new user
+      description: |
+        Creates a new user in both Cognito and DynamoDB. The user receives a
+        temporary password via email and must change it on first login.
+
+        **Required role:** `ADMIN`
+      operationId: createUser
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: User created
+                userId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cognito sub (UUID) of the user
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+    get:
+      tags: [Users]
+      summary: Get a user by ID
+      description: |
+        Returns a single user's profile.
+
+        **Access rules:**
+        - `ADMIN` can retrieve any user
+        - Any authenticated user can retrieve a profile
+      operationId: getUser
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+    put:
+      tags: [Users]
+      summary: Update a user
+      description: |
+        Updates a user's profile attributes in both Cognito and DynamoDB.
+
+        **Deactivating a user:** Set `status: "Archived"`. Users are never permanently
+        deleted — archiving is the only way to remove access. An archived user
+        cannot log in but their data and review history are preserved.
+
+        **Required role:** `ADMIN`
+      operationId: updateUser
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: User updated
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users/{userId}/public:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cognito sub (UUID) of the user whose public profile is being retrieved
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+    get:
+      tags: [Users]
+      summary: Get a user's public profile
+      description: |
+        Returns a minimal projection of a user (userId, firstName, lastName, role)
+        that is safe to expose to any authenticated caller — no email, hireDate,
+        reportingTo, or other PII.
+
+        **Access rules:**
+        - Any authenticated caller can retrieve any user's public profile
+      operationId: getUserPublic
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Public user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUser'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users/{userId}/manager:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cognito sub (UUID) of the user whose manager is being retrieved
+        example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+    get:
+      tags: [Users]
+      summary: Get a user's manager
+      description: |
+        Returns the direct manager of the specified user.
+
+        **Access rules:**
+        - `ADMIN` can retrieve the manager for any user
+        - `MANAGER` can retrieve the manager for any of their direct reports
+        - `EMPLOYEE` can retrieve their own manager only
+      operationId: getUserManager
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Manager found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: User or manager not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users/{userId}/team:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Cognito sub (UUID) of the manager whose team is being retrieved
+        example: mgr-uuid-1234
+
+    get:
+      tags: [Users]
+      summary: Get a manager's team
+      description: |
+        Returns the list of users who directly report to the specified manager.
+
+        **Access rules:**
+        - `ADMIN` can retrieve the team for any manager
+        - `MANAGER` can only retrieve their own team
+        - `EMPLOYEE` is forbidden
+      operationId: getManagerTeam
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Team members retrieved. Returns an empty list if the user has no direct reports.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+# ---------------------------------------------------------------------------
+# Review cycles
+# ---------------------------------------------------------------------------
+
+  /cycles/health:
+    get:
+      tags: [Review Cycles]
+      summary: Review Cycle Service health check
+      description: Returns the health status of the Review Cycle Service lambda. No authentication required.
+      operationId: getCycleHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/ReviewCycleMessageResponse'
+              example:
+                message: Review Service is Online
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycleMessageResponse'
+
+  /cycles:
+    get:
+      tags: [Review Cycles]
+      summary: List review cycles
+      operationId: listReviewCycles
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [DRAFT, SCHEDULED, ACTIVE, COMPLETED]
+      responses:
+        '200':
+          description: List of review cycles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewCycle'
+
+    post:
+      tags: [Review Cycles]
+      summary: Create a draft review cycle
+      description: |
+        Creates a new review cycle in DRAFT status.
+
+        - Validation is flexible
+        - Milestones may be incomplete
+        - Missing milestone dates default to cycle startDate
+        - Milestones can run in parallel
+      operationId: createReviewCycle
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewCycleRequest'
+      responses:
+        '201':
+          description: Review cycle created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycle'
+
+  /cycles/{cycleId}:
+    get:
+      tags: [Review Cycles]
+      summary: Get a review cycle
+      operationId: getReviewCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review cycle details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycle'
+        '404':
+          description: Not found
+
+    put:
+      tags: [Review Cycles]
+      summary: Update a review cycle
+      description: |
+        Updates an existing review cycle.
+
+        Status transitions:
+        DRAFT → SCHEDULED → ACTIVE → COMPLETED
+
+        COMPLETED cycles cannot be modified.
+
+        - Milestones are independent
+        - No sequential enforcement
+        - Overlap is allowed
+        - Cycle may expand automatically if milestone exceeds bounds
+      operationId: updateReviewCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewCycleRequest'
+      responses:
+        '200':
+          description: Updated review cycle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycle'
+
+    delete:
+      tags: [Review Cycles]
+      summary: Delete a review cycle
+      operationId: deleteReviewCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /cycles/sync:
+    post:
+      tags: [Review Cycles]
+      summary: Daily auto-sync of cycle and milestone status
+      description: |
+        Recomputes cycle and milestone statuses from current dates.
+
+        Legacy maintenance endpoint retained for manual/internal use. Daily
+        EventBridge Scheduler now invokes notification-service maintenance so
+        status sync and auto event reminder setup are owned by one service.
+      operationId: syncReviewCycles
+      responses:
+        '200':
+          description: Sync complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Sync failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /cycles/{cycleId}/publish:
+    post:
+      tags: [Review Cycles]
+      summary: Publish a review cycle
+      description: |
+        Publishes a review cycle.
+
+        - Only DRAFT cycles can be published
+        - Moves cycle to SCHEDULED
+        - Requires full validation of milestones
+      operationId: publishReviewCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycle'
+        '400':
+          description: Validation error
+        '404':
+          description: Not found
+
+  /cycles/{cycleId}/activate:
+    post:
+      tags: [Review Cycles]
+      summary: Activate a scheduled review cycle
+      description: |
+        Moves a cycle from SCHEDULED to ACTIVE.
+
+        - Only SCHEDULED cycles can be activated
+        - Manual override of the daily auto-sync
+      operationId: activateReviewCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycle'
+        '400':
+          description: Cycle not in SCHEDULED state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Not found
+
+  /cycles/{cycleId}/complete:
+    post:
+      tags: [Review Cycles]
+      summary: Force-complete an active review cycle (admin only)
+      description: |
+        Moves a cycle from ACTIVE to COMPLETED immediately, bypassing the daily auto-sync.
+        Used when an admin wants to end a cycle ahead of its due date.
+
+        - Only ACTIVE cycles can be force-completed
+        - In-flight reviews are NOT auto-published; admin can bundle-publish per subject if needed
+      operationId: completeReviewCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCycle'
+        '400':
+          description: Cycle not in ACTIVE state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Forbidden — admin only
+        '404':
+          description: Not found
+
+# ---------------------------------------------------------------------------
+# Review Templates
+# ---------------------------------------------------------------------------
+
+  /templates/health:
+    get:
+      tags: [Review Templates]
+      summary: Template Service health check
+      operationId: getTemplateHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTemplateMessageResponse'
+
+  /templates/check-name:
+    get:
+      tags: [Review Templates]
+      summary: Check if a template name is available
+      description: |
+        Returns whether the given template name is already taken.
+
+        **Required role:** `ADMIN`
+      operationId: checkTemplateName
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: excludeId
+          in: query
+          required: false
+          description: Template ID to exclude from the uniqueness check (for updates)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Name availability result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateNameCheckResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+
+  /templates:
+    get:
+      tags: [Review Templates]
+      summary: List all review templates
+      description: |
+        Returns all saved templates. Optionally filter by review type.
+
+        **Required role:** `ADMIN`
+      operationId: listReviewTemplates
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: reviewType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [SELF, PEER_360, MANAGER]
+          description: Filter templates by review type
+      responses:
+        '200':
+          description: List of review templates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTemplateListResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+
+    post:
+      tags: [Review Templates]
+      summary: Create a review template
+      description: |
+        Creates a new named reusable review template.
+        Template names must be unique across all templates.
+
+        **Required role:** `ADMIN`
+      operationId: createReviewTemplate
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewTemplateRequest'
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTemplate'
+        '400':
+          description: Validation error or duplicate template name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTemplateMessageResponse'
+        '403':
+          description: Forbidden — ADMIN role required
+
+  /templates/{templateId}:
+    parameters:
+      - name: templateId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: UUID of the review template
+
+    get:
+      tags: [Review Templates]
+      summary: Get a review template by ID
+      operationId: getReviewTemplate
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Template found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTemplate'
+        '404':
+          description: Template not found
+        '403':
+          description: Forbidden — ADMIN role required
+
+    put:
+      tags: [Review Templates]
+      summary: Update a review template
+      description: |
+        Updates a template's metadata and questions.
+
+        Updating a template does NOT affect milestones that already have
+        a snapshot of this template attached — they keep their frozen copy.
+
+        **Required role:** `ADMIN`
+      operationId: updateReviewTemplate
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewTemplateRequest'
+      responses:
+        '200':
+          description: Template updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewTemplate'
+        '400':
+          description: Validation error or duplicate template name
+        '404':
+          description: Template not found
+        '403':
+          description: Forbidden — ADMIN role required
+
+    delete:
+      tags: [Review Templates]
+      summary: Delete a review template
+      description: |
+        Permanently deletes a template.
+        Milestones that already have a snapshot of this template are unaffected.
+
+        **Required role:** `ADMIN`
+      operationId: deleteReviewTemplate
+      security:
+        - CognitoAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Template not found
+        '403':
+          description: Forbidden — ADMIN role required
+
+# ---------------------------------------------------------------------------
+# Reviews
+# ---------------------------------------------------------------------------
+
+  /reviews/health:
+    get:
+      tags: [Reviews]
+      summary: Review service health check
+      operationId: getReviewHealth
+      security: []
+      responses:
+        '200':
+          description: Service is online
+          content:
+            application/json:
+              example:
+                message: Review Service is Online
+
+  /reviews:
+    get:
+      tags: [Reviews]
+      summary: Search reviews (admin / manager)
+      description: Filter by subjectUserId, cycleId, or both. Returns overallStatus of the bundle.
+      operationId: listReviews
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: subjectUserId
+          in: query
+          schema:
+            type: string
+          example: alice-id
+        - name: cycleId
+          in: query
+          schema:
+            type: string
+          example: cycle-Q1-2026
+      responses:
+        '200':
+          description: List of reviews with overall bundle status
+          content:
+            application/json:
+              example:
+                overallStatus: IN_PROGRESS
+                reviews:
+                  - reviewId: uuid-1
+                    reviewType: SELF
+                    status: COMPLETED
+                  - reviewId: uuid-2
+                    reviewType: MANAGER
+                    status: IN_PROGRESS
+                  - reviewId: uuid-3
+                    reviewType: PEER_360
+                    status: NOT_STARTED
+        '400':
+          description: No query params provided
+        '403':
+          description: Forbidden — admin or manager only
+
+    post:
+      tags: [Reviews]
+      summary: Create a review (admin only)
+      operationId: createReview
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Missing required field
+        '403':
+          description: Forbidden — admin only, or manager gate closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagerGateStatus'
+
+  /reviews/my-review:
+    get:
+      tags: [Reviews]
+      summary: Get my reviews (reviews where I am the subject)
+      operationId: getMyReviews
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Reviews for the authenticated user
+          content:
+            application/json:
+              example:
+                reviews:
+                  - reviewId: uuid-1
+                    reviewType: SELF
+                    status: COMPLETED
+        '401':
+          description: Unauthorized
+
+  /reviews/assigned-to-me:
+    get:
+      tags: [Reviews]
+      summary: Get reviews I need to fill out (I am the author)
+      operationId: getReviewsAssignedToMe
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Reviews assigned to the authenticated user
+          content:
+            application/json:
+              example:
+                reviews:
+                  - reviewId: uuid-2
+                    reviewType: MANAGER
+                    subjectUserId: alice-id
+                    status: DRAFT
+        '401':
+          description: Unauthorized
+
+  /reviews/cycle/{cycleId}:
+    get:
+      tags: [Reviews]
+      summary: List all reviews for a cycle (admin / manager)
+      description: Returns every review row scoped to the given cycleId. Admin or manager only.
+      operationId: getReviewsByCycle
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reviews for the cycle
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '403':
+          description: Forbidden — admin or manager only
+
+  /reviews/manager-gate:
+    get:
+      tags: [Reviews]
+      summary: Manager-review gate status for an employee/cycle
+      description: |
+        Returns whether the manager review for a given (cycleId, subjectUserId) can be created/submitted.
+        Open iff the subject's SELF review is COMPLETED or PUBLISHED AND every PEER_360 review is COMPLETED or PUBLISHED.
+      operationId: getManagerGate
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: subjectUserId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Gate status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagerGateStatus'
+        '400':
+          description: Missing query params
+        '403':
+          description: Forbidden — manager or admin only
+
+  /reviews/bundle/publish:
+    post:
+      tags: [Reviews]
+      summary: Publish all reviews for a subject in a cycle (admin / manager)
+      description: All reviews must be COMPLETED first. Flips all to PUBLISHED atomically.
+      operationId: publishReviewBundle
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishBundleRequest'
+      responses:
+        '200':
+          description: Bundle published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishBundleResponse'
+              example:
+                message: Bundle published successfully
+                reviews:
+                  - reviewType: SELF
+                    status: PUBLISHED
+                    publishedAt: '2026-04-24T14:00:00Z'
+                  - reviewType: MANAGER
+                    status: PUBLISHED
+                    publishedAt: '2026-04-24T14:00:00Z'
+                  - reviewType: PEER_360
+                    status: PUBLISHED
+                    publishedAt: '2026-04-24T14:00:00Z'
+                notificationJobs:
+                  - jobId: PUBLISHED#cycle-Q1-2026#alice-id
+                    taskType: REVIEW_PUBLISHED
+                    status: PENDING
+        '400':
+          description: One or more reviews not yet COMPLETED
+        '403':
+          description: Forbidden — admin or manager only
+        '404':
+          description: No reviews found for this cycle + subject
+
+  /reviews/{reviewId}:
+    parameters:
+      - $ref: '#/components/parameters/reviewId'
+
+    get:
+      tags: [Reviews]
+      summary: Get a single review by ID
+      operationId: getReview
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: Review found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '404':
+          description: Review not found
+
+    put:
+      tags: [Reviews]
+      summary: Update a review (author / admin / manager)
+      description: |
+        Save answers, change status, or add overall rating.
+
+        **Status transitions:**
+        - NOT_STARTED → DRAFT (save draft)
+        - DRAFT → IN_PROGRESS
+        - NOT_STARTED → IN_PROGRESS
+        - IN_PROGRESS → COMPLETED (submit)
+        - COMPLETED → PUBLISHED (via bundle publish only)
+      operationId: updateReview
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+            examples:
+              save_draft:
+                summary: Save as draft
+                value:
+                  status: DRAFT
+                  version: 1
+                  answers:
+                    - questionId: q1
+                      response: I improved my communication skills
+                    - questionId: q2
+                      response: 4
+              submit:
+                summary: Submit review
+                value:
+                  status: COMPLETED
+                  version: 2
+                  overallRating: "4"
+                  overallComment: Strong performance this quarter
+                  answers:
+                    - questionId: q1
+                      response: Met all targets
+      responses:
+        '200':
+          description: Review updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Illegal status transition
+        '403':
+          description: Forbidden — not the author/admin/manager, or manager gate closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagerGateStatus'
+        '404':
+          description: Review not found
+        '409':
+          description: Stale version — reload and try again
+
+    delete:
+      tags: [Reviews]
+      summary: Delete a review (admin only)
+      operationId: deleteReview
+      security:
+        - CognitoAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '403':
+          description: Forbidden — admin only
+        '404':
+          description: Review not found
+
+  /cycles/{cycleId}/peer360-assignments:
+    post:
+      tags: [Peer 360 Assignments]
+      summary: Assign 360 reviewers for one subject in a cycle (manager / admin)
+      description: |
+        Idempotent. Re-POSTing the same (subjectUserId, authorUserId) pair is a no-op
+        (returned in `skipped`). Each assignment becomes a `PEER_360` Review row.
+      operationId: createPeer360Assignments
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePeer360AssignmentsRequest'
+      responses:
+        '200':
+          description: Assignment results (created + skipped)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Peer360AssignmentResult'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Forbidden — manager or admin only
+        '404':
+          description: Cycle, subject, or author not found
+
+    get:
+      tags: [Peer 360 Assignments]
+      summary: List 360 assignments for one subject in a cycle (manager / admin)
+      description: |
+        Subject themselves cannot read this — anonymity is intentional.
+      operationId: listPeer360Assignments
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: subjectUserId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Assignments for the (cycle, subject) pair
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '403':
+          description: Forbidden — subject themselves cannot read this endpoint
+
+  /cycles/{cycleId}/peer360-assignments/{reviewId}:
+    delete:
+      tags: [Peer 360 Assignments]
+      summary: Remove a 360 assignment (only if peer hasn't started)
+      description: |
+        Returns 409 if the peer has any status other than NOT_STARTED — use a future
+        waive flow once that lands. Caller must be the subject's manager or admin.
+      operationId: deletePeer360Assignment
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+        '403':
+          description: Forbidden
+        '404':
+          description: Assignment not found
+        '409':
+          description: Peer has started — cannot delete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # ---------------------------------------------------------------------------
+  # Notifications
+  # ---------------------------------------------------------------------------
+  /notifications/reminders/manual:
+    post:
+      tags: [Notifications]
+      summary: Manually remind review participants by email
+      description: |
+        Managers can remind direct reports for self reviews, peer reviewers for
+        a direct report's peer reviews, and direct-report managers for manager
+        reviews. Admins can remind all eligible recipients.
+      operationId: sendManualReminder
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualReminderRequest'
+      responses:
+        '202':
+          description: Reminder jobs created or skipped by dedupe/eligibility
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualReminderResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /notifications/maintenance/daily:
+    post:
+      tags: [Notifications]
+      summary: Daily notification-owned cycle maintenance and event reminder setup
+      description: |
+        Internal daily maintenance endpoint invoked by EventBridge Scheduler at
+        midnight Australia/Sydney. It updates cycle and milestone statuses, then
+        creates auto event reminder jobs for matching cycle and milestone dates.
+      operationId: runNotificationDailyMaintenance
+      responses:
+        '200':
+          description: Maintenance complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Maintenance failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /notifications/jobs/{jobId}/status:
+    get:
+      tags: [Notifications]
+      summary: Get notification delivery job status
+      description: |
+        Used by the frontend after publish or manual reminder actions. Valid
+        deterministic job IDs may be returned as PENDING before the async intent
+        handler has materialized the row.
+      operationId: getNotificationJobStatus
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationJobStatusResponse'
+        '404':
+          description: Unknown or invalid job id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # ---------------------------------------------------------------------------
+  # AI Review
+  # ---------------------------------------------------------------------------
+  /ai-review/disciplines:
+    get:
+      tags: [AI Review]
+      summary: List available disciplines and seniority levels
+      operationId: getAiReviewDisciplines
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: List of disciplines with their seniority levels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DisciplineInfo'
+        '500':
+          description: Failed to load disciplines
+
+  /ai-review/analyze:
+    post:
+      tags: [AI Review]
+      summary: Start asynchronous analysis of self-review answers against performance criteria
+      operationId: analyzeAiReview
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiReviewRequest'
+      responses:
+        '202':
+          description: AI review analysis accepted — poll the status endpoint for results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewJobResponse'
+        '400':
+          description: Missing or invalid request fields
+        '401':
+          description: Unauthorized
+  /ai-review/analyze/{jobId}/status:
+    get:
+      tags: [AI Review]
+      summary: Poll asynchronous AI review analysis status
+      operationId: getAiReviewAnalysisStatus
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current AI review analysis status, with result when completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewStatusResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: AI review job not found
+
+  /ai-review/insights:
+    post:
+      tags: [AI Review]
+      summary: Start asynchronous generation of self-review summary and golden mirror
+      operationId: generateAiReviewInsights
+      security:
+        - CognitoAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiReviewInsightsRequest'
+      responses:
+        '202':
+          description: AI review insights accepted — poll the status endpoint for results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewJobResponse'
+        '400':
+          description: Missing or invalid request fields
+        '401':
+          description: Unauthorized
+
+  /ai-review/insights/{jobId}/status:
+    get:
+      tags: [AI Review]
+      summary: Poll asynchronous AI review insights status
+      operationId: getAiReviewInsightsStatus
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current AI review insights status, with result when completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewInsightsStatusResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: AI review job not found
+
+  # ── Manager guidance endpoints (G3 — async via SQS) ──────────────────────
+  # All three POSTs enqueue a job and return 202 + UUID jobId. Frontend polls
+  # /ai-review/manager/jobs/{jobId}/status until the row is COMPLETED. Pattern
+  # matches /analyze and /insights but uses a loose-typed status endpoint
+  # because each manager taskType produces a different result shape.
+  #
+  # Result shapes by taskType (frontend casts based on which start* it called):
+  #   - MANAGER_GOLDEN          → ManagerGoldenReview
+  #   - MANAGER_QUESTION_SUGGEST→ QuestionSuggestResult
+  #   - PEER_360_DIGEST         → Peer360Digest
+
+  /ai-review/manager/jobs/{jobId}/status:
+    get:
+      tags: [AI Review]
+      summary: Poll the status of any manager-flow AI job
+      description: |
+        Returns the cached job row with the raw result JSON object. The result
+        shape depends on the job's taskType — see the descriptions on the three
+        manager POST endpoints. This endpoint is loose-typed (`result: object`)
+        because the strict `/analyze/{jobId}/status` endpoint binds results into
+        `AiReviewResponse` which would silently drop non-analyze fields.
+      operationId: getManagerJobStatus
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Current manager job status, with result when COMPLETED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagerJobStatusResponse'
+        '401': { description: Unauthorized }
+        '403': { description: Caller is not an admin or manager }
+        '404': { description: AI job not found }
+  /ai-review/manager/reviews/{reviewId}/golden:
+    post:
+      tags: [AI Review]
+      summary: Enqueue a polished "golden" rewrite of a manager's draft review
+      operationId: managerGolden
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: Job enqueued — poll the status endpoint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewJobResponse'
+        '401': { description: Unauthorized }
+        '403': { description: Caller is not an admin or manager }
+        '500': { description: Failed to persist or enqueue the job }
+
+  /ai-review/manager/cycles/{cycleId}/subjects/{subjectUserId}/peer360-digest:
+    post:
+      tags: [AI Review]
+      summary: Enqueue a peer-360 digest for the manager view
+      description: |
+        Clusters every completed PEER_360 row for this (cycleId, subjectUserId)
+        pair into themes / consensus / dissent / overall sentiment. Returns
+        202 + jobId; the frontend polls /ai-review/manager/jobs/{jobId}/status.
+        Result shape is Peer360Digest. ADR-2.
+      operationId: managerPeer360Digest
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: subjectUserId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: Job enqueued — poll the status endpoint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewJobResponse'
+        '400': { description: Missing cycleId or subjectUserId }
+        '401': { description: Unauthorized }
+        '403': { description: Caller is not an admin or manager }
+        '500': { description: Failed to persist or enqueue the job }
+
+  /ai-review/manager/reviews/{reviewId}/question-suggest:
+    post:
+      tags: [AI Review]
+      summary: Enqueue a per-question Gemini suggestion
+      operationId: managerQuestionSuggest
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionSuggestRequest'
+      responses:
+        '202':
+          description: Job enqueued — poll the status endpoint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiReviewJobResponse'
+        '400':
+          description: Missing or invalid request fields (questionId, questionText, managerCurrentAnswer, discipline, seniority, employeeReview.answers)
+        '401': { description: Unauthorized }
+        '403': { description: Caller is not an admin or manager }
+        '500': { description: Failed to persist or enqueue the job }
+
+  # ── CC-6: Gemini context-cache admin (admin-only) ───────────────────────────
+  # Operator escape hatch for the CatalystFlow_GeminiContextCache table. The
+  # DELETE endpoint is the manual invalidation knob when a bad cache row is
+  # poisoning suggestions; the GET endpoint is the cache inventory view for
+  # ops triage. Admin RBAC is the only gate — both prod and dev. Per plan
+  # §6 decision 2: "prod-enabled from day one; admin is the gate".
+  /ai-review/cache:
+    get:
+      tags: [AI Review]
+      summary: List all entries in the Gemini context-cache index (admin)
+      description: |
+        Returns every row in the CatalystFlow_GeminiContextCache table — both
+        real cache rows (entryType=CACHE pointing at a live Gemini
+        cachedContents/<id>) and tombstones (entryType=UNDER_THRESHOLD,
+        used to memoise the "too small to cache" decision per §D6).
+        Expired rows clean themselves via DDB TTL, so this view is the
+        live working set.
+
+        **Scope**: row inventory + per-entry cached-token count + DDB TTL
+        info only. Per-entry hit-rate / hit-count stats are NOT in this
+        response (CC-6 AC-12.2 originally promised "hit-rate stats" but
+        was revised in the round-3 follow-up — per-entry hit tracking
+        requires DDB counter updates on every cache hit which we don't
+        ship today). Aggregate hit-rate IS available — see CloudWatch
+        namespace `CatalystFlow/AI`, metrics `CacheHit` and `Cacheable`,
+        sliced by `taskType` and `stage` dimensions. The
+        `CatalystFlow-Ai-CacheHitRate-Low` alarm watches the SUM ratio.
+      operationId: listCacheEntries
+      security:
+        - CognitoAuth: []
+      responses:
+        '200':
+          description: All current cache entries (real + tombstones)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheEntryListResponse'
+        '401': { description: Unauthorized }
+        '403': { description: Caller is not an admin }
+        '500': { description: DDB scan failed }
+  /ai-review/cache/{cacheKey}:
+    delete:
+      tags: [AI Review]
+      summary: Invalidate a single Gemini cache entry (admin)
+      description: |
+        Hard-delete the cache row and, when applicable, the upstream Gemini
+        cachedContents resource. For tombstones (entryType=UNDER_THRESHOLD)
+        the Gemini DELETE is skipped — no upstream resource exists, so
+        calling Gemini DELETE would 404. For real cache rows the upstream
+        DELETE is best-effort: a 404 from Gemini (TTL already expired) is
+        logged and ignored; the DDB row is removed regardless so the next
+        resolveOrCreate forces a fresh create.
+      operationId: deleteCacheEntry
+      security:
+        - CognitoAuth: []
+      parameters:
+        - name: cacheKey
+          in: path
+          required: true
+          schema: { type: string }
+          description: |
+            The full cacheKey as returned by GET /ai-review/cache —
+            taskType#promptVersion#sha256_16(content)#discipline#seniority.
+      responses:
+        '204': { description: Entry deleted (DDB + best-effort upstream Gemini) }
+        '401': { description: Unauthorized }
+        '403': { description: Caller is not an admin }
+        '404': { description: No cache entry with that cacheKey }
+        '500': { description: DDB delete failed (Gemini upstream failure does NOT 500) }

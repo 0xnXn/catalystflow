@@ -1,0 +1,440 @@
+<div class="page-container">
+
+  <!-- TOP SECTION: header + stat cards -->
+  <div class="top-section">
+    <div class="page-header">
+      <div class="page-header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+      </div>
+      <div>
+        <h1 class="page-title">My Review</h1>
+        <p class="page-subtitle">Access and manage your performance review</p>
+      </div>
+    </div>
+
+    <!-- Skeleton stats -->
+    <div class="stats-grid" *ngIf="loading">
+      <div class="stat-card" *ngFor="let _ of [1,2,3,4]">
+        <app-skeleton width="55%" height="11px"></app-skeleton>
+        <div style="margin-top:8px;"><app-skeleton width="40%" height="22px"></app-skeleton></div>
+      </div>
+    </div>
+
+    <!-- Real stats -->
+    <div class="stats-grid" *ngIf="!loading">
+      <div class="stat-card">
+        <p class="stat-label">Active Cycle</p>
+        <p class="stat-value stat-sm">{{ activeCycle?.cycleTitle || 'No active cycle' }}</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Self Review</p>
+        <p class="stat-value" [ngClass]="selfReviewStatClass">{{ selfReviewStat }}</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Manager Review</p>
+        <p class="stat-value" [ngClass]="managerReviewStatClass">{{ managerReviewStat }}</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Past Reviews</p>
+        <p class="stat-value">{{ reviewHistory.length }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM SECTION: scrollable cards -->
+  <div class="bottom-section">
+
+    <!-- === CURRENT CYCLE CARD === -->
+    <ng-container *ngIf="loading">
+      <div class="table-container">
+        <div class="cycle-header skeleton-cycle-header">
+          <app-skeleton width="260px" height="18px"></app-skeleton>
+        </div>
+        <div class="table-wrapper">
+          <table class="review-table">
+            <thead>
+              <tr><th>Review Type</th><th>Status</th><th>Deadline</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let _ of [1,2]">
+                <td>
+                  <div style="display:flex;align-items:center;gap:12px;">
+                    <app-skeleton width="36px" height="36px" radius="8px"></app-skeleton>
+                    <div>
+                      <app-skeleton width="120px" height="13px"></app-skeleton>
+                      <div style="margin-top:5px;"><app-skeleton width="160px" height="11px"></app-skeleton></div>
+                    </div>
+                  </div>
+                </td>
+                <td><app-skeleton width="90px" height="24px" radius="999px"></app-skeleton></td>
+                <td><app-skeleton width="80px" height="13px"></app-skeleton></td>
+                <td><app-skeleton width="140px" height="34px" radius="8px"></app-skeleton></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="table-container" *ngIf="!loading && activeCycle">
+      <div class="cycle-header">
+        <div class="cycle-header-left">
+          <div class="cycle-header-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v4"></path>
+              <path d="M16 2v4"></path>
+              <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+              <path d="M3 10h18"></path>
+            </svg>
+          </div>
+          <span class="cycle-label">Current Review Cycle</span>
+          <ng-container *ngIf="availableActiveCycles.length > 1">
+            <select class="cycle-picker" [ngModel]="selectedCycleId" (ngModelChange)="onCycleChange($event)" name="cyclePicker">
+              <option *ngFor="let c of availableActiveCycles" [value]="c.cycleId">{{ c.cycleTitle }}</option>
+            </select>
+            <span class="cycle-picker-hint">({{ availableActiveCycles.length }} active)</span>
+          </ng-container>
+        </div>
+        <span class="cycle-badge">In Progress</span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Review Type</th>
+              <th>Status</th>
+              <th>Deadline</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of actionRows">
+              <td>
+                <div class="review-type-cell">
+                  <div class="action-icon" [ngClass]="row.iconClass">
+                    <svg *ngIf="row.iconClass === 'self'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <svg *ngIf="row.iconClass === 'manager'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <svg *ngIf="row.iconClass === 'peer360'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="type-name">{{ row.title }}</div>
+                    <div class="type-sub">{{ row.subtitle }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <ng-container *ngIf="isMilestoneExpired(row.milestone) && !canView(row); else normalPill">
+                  <span class="status-pill expired">
+                    <span class="status-dot"></span>
+                    Expired
+                  </span>
+                </ng-container>
+                <ng-template #normalPill>
+                  <span class="status-pill" [ngClass]="row.status.toLowerCase()">
+                    <span class="status-dot"></span>
+                    {{ displayActionStatus(row.status) }}
+                  </span>
+                </ng-template>
+              </td>
+              <td>
+                <ng-container *ngIf="row.status === 'COMPLETED' || row.status === 'PUBLISHED'">
+                  <div class="deadline-date">{{ formatDate(row.existingReview?.submittedAt) }}</div>
+                  <div class="deadline-sub">Submitted</div>
+                </ng-container>
+                <ng-container *ngIf="row.status !== 'COMPLETED' && row.status !== 'PUBLISHED'">
+                  <div class="deadline-date">{{ formatDate(row.milestone.endDate) }}</div>
+                  <div class="deadline-sub">
+                    <ng-container *ngIf="row.status === 'NOT_STARTED' || row.status === 'DRAFT'">{{ row.daysRemaining }} days remaining</ng-container>
+                    <ng-container *ngIf="row.status === 'LOCKED'">Not assigned</ng-container>
+                  </div>
+                </ng-container>
+              </td>
+              <td>
+                <button
+                  class="btn-action"
+                  [ngClass]="actionBtnClass(row)"
+                  [disabled]="!canAct(row) && !canView(row)"
+                  (click)="openReview(row)"
+                >
+                  <!-- Self icon -->
+                  <svg *ngIf="row.iconClass === 'self' && canAct(row)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <!-- Peer / Manager icon -->
+                  <svg *ngIf="row.iconClass !== 'self' && canAct(row)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                  <!-- View icon -->
+                  <svg *ngIf="canView(row)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <!-- Muted icon -->
+                  <svg *ngIf="!canAct(row) && !canView(row)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  {{ actionLabel(row) }}
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="actionRows.length === 0">
+              <td colspan="4" class="no-rows">No review tasks for this cycle.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="empty-card" *ngIf="!activeCycle && !loading">
+      <div class="empty-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <p class="empty-card-title">No Active Review Cycle</p>
+      <p class="empty-card-sub">There's no active review cycle right now. Check back soon!</p>
+    </div>
+
+    <!-- === HISTORY CARD === -->
+    <ng-container *ngIf="loading">
+      <div class="table-container">
+        <div class="history-header-row skeleton-cycle-header">
+          <app-skeleton width="180px" height="18px"></app-skeleton>
+        </div>
+        <div class="table-wrapper">
+          <table class="review-table">
+            <thead>
+              <tr><th>Review Cycle</th><th>Self Review</th><th>Manager Review</th><th>Overall Rating</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let _ of [1,2,3]">
+                <td>
+                  <app-skeleton width="70%" height="13px"></app-skeleton>
+                  <div style="margin-top:5px;"><app-skeleton width="50%" height="11px"></app-skeleton></div>
+                </td>
+                <td><app-skeleton width="90px" height="24px" radius="999px"></app-skeleton></td>
+                <td><app-skeleton width="90px" height="24px" radius="999px"></app-skeleton></td>
+                <td><app-skeleton width="120px" height="24px" radius="999px"></app-skeleton></td>
+                <td><app-skeleton width="100px" height="32px" radius="8px"></app-skeleton></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="table-container" *ngIf="!loading">
+      <div class="history-header-row">
+        <div class="history-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          Review History
+          <span class="history-count">{{ reviewHistory.length }}</span>
+        </div>
+      </div>
+
+      <div class="table-wrapper" *ngIf="reviewHistory.length > 0">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Review Period</th>
+              <th>Self Review</th>
+              <th>Manager Review</th>
+              <th>Attachments</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of reviewHistory">
+              <td>
+                <div class="cycle-name">{{ item.cycle?.cycleTitle || 'Unknown Cycle' }}</div>
+                <div class="cycle-period" *ngIf="formatPeriod(item.cycle) !== '—'">{{ formatPeriod(item.cycle) }}</div>
+              </td>
+              <td>
+                <div class="history-date-only" *ngIf="formatDate(item.selfReviewTime) !== '—'; else selfNoDate">
+                  {{ formatDate(item.selfReviewTime) }}
+                </div>
+                <ng-template #selfNoDate>
+                  <span class="history-pending-text">Not submitted</span>
+                </ng-template>
+              </td>
+              <td>
+                <ng-container *ngIf="item.managerReviewStatus === 'Pending'; else managerDone">
+                  <div class="history-date-only">Pending</div>
+                </ng-container>
+                <ng-template #managerDone>
+                  <div class="history-date-only">{{ formatDate(item.managerReviewTime) }}</div>
+                </ng-template>
+              </td>
+              <td>
+                <div class="attachment-links">
+                  <ng-container *ngIf="formatDate(item.selfReviewTime) !== '—'; else selfPendingLink">
+                    <button class="attachment-link attachment-link--dark" (click)="openHistoryDetails(item, 'self')">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                      Self Review
+                    </button>
+                  </ng-container>
+                  <ng-template #selfPendingLink>
+                    <span class="attachment-link attachment-link--muted" (click)="showPendingPopup('Self review has not been submitted yet.')">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                      Self Review
+                    </span>
+                  </ng-template>
+                  <ng-container *ngIf="item.managerReviewStatus !== 'Pending'; else managerPendingLink">
+                    <button class="attachment-link attachment-link--dark" (click)="openHistoryDetails(item, 'manager')">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                      Manager Review
+                    </button>
+                  </ng-container>
+                  <ng-template #managerPendingLink>
+                    <span class="attachment-link attachment-link--muted" (click)="showPendingPopup('Manager review is still pending.')">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                      Manager Review
+                    </span>
+                  </ng-template>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="history-empty" *ngIf="reviewHistory.length === 0">No past reviews yet.</div>
+    </div>
+
+  </div><!-- /bottom-section -->
+
+  <!-- ====== HISTORY DETAILS MODAL ====== -->
+  <div class="history-modal-backdrop" *ngIf="showHistoryDetails && selectedHistory" (click)="closeHistoryDetails()">
+    <div class="history-modal" (click)="$event.stopPropagation()">
+
+      <!-- Modal header -->
+      <div class="history-modal-header">
+        <div class="history-modal-title-row">
+          <div>
+            <h2>{{ selectedHistory.cycle?.cycleTitle || selectedHistory.review.cycleId }}</h2>
+            <p>{{ formatPeriod(selectedHistory.cycle) }}</p>
+          </div>
+          <div class="history-modal-header-actions">
+            <button class="btn-export-modal" (click)="exportHistoryToPdf(selectedHistory)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export PDF
+            </button>
+            <button class="history-modal-close-inline" type="button" (click)="closeHistoryDetails()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="history-modal-meta">
+          <span>{{ selectedModalLabel }} · Submitted on {{ formatDate(selectedHistoryType === 'manager' ? selectedHistory.managerReviewTime : selectedHistory.selfReviewTime) }}</span>
+        </div>
+      </div>
+
+      <!-- Q&A answers — driven by selectedModalReview, no string comparisons -->
+      <div class="history-modal-body">
+        <ng-container *ngIf="selectedModalReview?.answers?.length; else noModalAnswers">
+          <div class="history-qa-item"
+               *ngFor="let ans of selectedModalReview!.answers; let i = index">
+            <div class="history-qa-q">
+              <span class="history-qa-num">Q{{ i + 1 }}</span>
+              {{ getQuestionText(selectedHistory, ans.questionId) || ans.questionId }}
+            </div>
+            <!-- Rating → stars -->
+            <div *ngIf="isRatingAnswer(selectedHistory, ans.questionId); else textAnswer" class="history-qa-stars">
+              <ng-container *ngFor="let n of ratingArrayFor(getRatingScale(selectedHistory, ans.questionId))">
+                <svg [class.star-filled]="n <= +ans.response" viewBox="0 0 24 24" width="16" height="16"
+                     fill="currentColor" stroke="currentColor" stroke-width="1">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </ng-container>
+              <span class="history-qa-rating-val">{{ ans.response }}/{{ getRatingScale(selectedHistory, ans.questionId) }}</span>
+            </div>
+            <!-- Text / other → plain -->
+            <ng-template #textAnswer>
+              <div class="history-qa-a" [class.history-qa-a--empty]="!ans.response">
+                {{ ans.response || 'Not answered' }}
+              </div>
+            </ng-template>
+          </div>
+        </ng-container>
+        <ng-template #noModalAnswers>
+          <div class="history-empty">No answers recorded for this review.</div>
+        </ng-template>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page-container -->
+
+<!-- Pending popup -->
+<div class="pending-popup-backdrop" *ngIf="pendingPopupVisible" (click)="closePendingPopup()">
+  <div class="pending-popup" (click)="$event.stopPropagation()">
+    <div class="pending-popup-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <p class="pending-popup-msg">{{ pendingPopupMessage }}</p>
+    <button class="pending-popup-btn" (click)="closePendingPopup()">OK</button>
+  </div>
+</div>

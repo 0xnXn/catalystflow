@@ -1,0 +1,19 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  build:
+    commands:
+    - mvn -B package -DskipTests -Dquarkus.dynamodb.devservices.enabled=false -Dquarkus.sqs.devservices.enabled=false
+      -Dquarkus.s3.devservices.enabled=false -Djacoco.skip=true
+    - sha256sum */target/function.zip > artifact-checksums.txt
+artifacts:
+  files:
+  - template.yaml
+  - '*/target/function.zip'
+  - artifact-checksums.txt
+  - buildspec-deploy.yml
+cache:
+  paths:
+  - /root/.m2/repository/**/*

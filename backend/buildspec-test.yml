@@ -1,0 +1,18 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  build:
+    commands:
+    - mvn -B test -Dquarkus.dynamodb.devservices.enabled=false -Dquarkus.sqs.devservices.enabled=false
+      -Dquarkus.s3.devservices.enabled=false -Djacoco.skip=true -Dtest="!*IntegrationTest*"
+      -Dsurefire.failIfNoSpecifiedTests=false
+reports:
+  UnitTests:
+    files:
+    - '**/target/surefire-reports/TEST-*.xml'
+    file-format: JUNITXML
+cache:
+  paths:
+  - /root/.m2/repository/**/*

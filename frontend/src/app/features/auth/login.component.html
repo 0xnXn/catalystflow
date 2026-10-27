@@ -1,0 +1,165 @@
+<div class="login-wrapper">
+  <div class="login-container">
+    <!-- LEFT SIDE (FORM) -->
+    <div class="form-section">
+      <div class="form-box">
+
+        <!-- Logo -->
+        <div class="logo">
+          <img src="/assets/catalystflow.svg" alt="CatalystFlow" />
+        </div>
+
+        <h1>Welcome Back</h1>
+        <p class="subtitle">Sign in to access your account</p>
+
+        <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
+          <!-- EMAIL -->
+          <div class="input-group">
+            <label for="login-email">Email Address</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                <path d="M22 7L13 13L2 7"></path>
+              </svg>
+              <input
+                id="login-email"
+                type="email"
+                name="email"
+                [(ngModel)]="email"
+                (ngModelChange)="onInputChange()"
+                required
+                placeholder="Enter your email"
+              />
+            </div>
+          </div>
+
+          <!-- PASSWORD -->
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <input
+                id="login-password"
+                [type]="showPassword ? 'text' : 'password'"
+                name="password"
+                [(ngModel)]="password"
+                (ngModelChange)="onInputChange()"
+                required
+                placeholder="Enter your password"
+              />
+              <!-- Show/hide toggle -->
+              <button type="button" class="toggle-password-btn" (click)="showPassword = !showPassword" aria-label="Toggle password visibility">
+                <!-- Eye open — password hidden -->
+                <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <!-- Eye closed — password visible -->
+                <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Forgot password link -->
+          <div class="forgot-password-row">
+            <a routerLink="/forgot-password" class="forgot-password-link">Forgot password?</a>
+          </div>
+
+          <!-- Error message from Cognito -->
+          <div *ngIf="errorMessage" class="error-box">
+            <p>{{ errorMessage }}</p>
+          </div>
+
+          <button type="submit" [disabled]="!loginForm.valid || isLoading" class="login-btn">
+            <span *ngIf="!isLoading">
+              Sign In
+              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14"></path>
+                <path d="M12 5l7 7-7 7"></path>
+              </svg>
+            </span>
+            <span *ngIf="isLoading" class="spinner-row">
+              <span class="btn-spinner"></span>
+              Signing in…
+            </span>
+          </button>
+
+        </form>
+
+        <section *ngIf="demoAccountsEnabled" class="demo-section" aria-labelledby="demo-heading">
+          <div class="demo-heading"><h2 id="demo-heading">Try a demo workspace</h2><span>Shared sandbox</span></div>
+          <p class="demo-intro">Choose a role to fill in its sign-in details. Use synthetic data only.</p>
+          <div class="demo-card" *ngFor="let account of demoAccounts">
+            <div class="demo-account"><strong>{{ account.role }}</strong><span>{{ account.email }}</span></div>
+            <button type="button" class="demo-use" [disabled]="isLoading" (click)="useDemoAccount(account.email)" [attr.aria-label]="'Use ' + account.role + ' demo credentials'">Use {{ account.role }}</button>
+          </div>
+          <p class="demo-password">Password for all three roles: <code>{{ demoPassword }}</code></p>
+        </section>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE (INFO PANEL) -->
+    <div class="info-section">
+      <div class="info-content space-y-6">
+        <h2 class="text-2xl font-bold text-gray-900">Empower Performance Reviews</h2>
+        <p class="text-gray-600">
+          Bring review cycles, team feedback, and performance conversations into one clear workspace.
+        </p>
+
+        <!-- Structured Reviews -->
+        <div class="feature flex items-start gap-4">
+          <div class="icon-box">
+            <svg width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+              </path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Structured Reviews</h3>
+            <p class="text-gray-600">Keep feedback consistent and actionable</p>
+          </div>
+        </div>
+
+        <!-- Team Reviews -->
+        <div class="feature flex items-start gap-4">
+          <div class="icon-box">
+            <svg width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+              </path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Team Reviews</h3>
+            <p class="text-gray-600">Manage reviews in one place</p>
+          </div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="feature flex items-start gap-4">
+          <div class="icon-box">
+            <svg width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+              </path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Analytics</h3>
+            <p class="text-gray-600">Insights across your organization</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,221 @@
+<!-- ── Full-page loading ──────────────────────────────────────────────── -->
+<div *ngIf="loading" class="page-loading">
+  <div class="spinner"></div>
+</div>
+
+<div *ngIf="!loading" class="insights-page">
+
+  <!-- ── Page header ───────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Review Analytics</h1>
+      <p *ngIf="selectedCycle" class="page-subtitle">{{ cycleLabel }}</p>
+      <p *ngIf="!selectedCycle" class="page-subtitle">Select a review cycle to view analytics</p>
+    </div>
+    <div class="cycle-selector-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span class="selector-label">Review Cycle:</span>
+      <select class="cycle-select" [(ngModel)]="selectedCycleId" (ngModelChange)="onCycleChange()">
+        <option *ngFor="let c of cycles" [value]="c.cycleId">
+          {{ c.cycleTitle }}{{ c.status === 'ACTIVE' ? ' (Active)' : '' }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ── Data loading ───────────────────────────────────────────────────── -->
+  <div *ngIf="dataLoading" class="data-loading">
+    <div class="spinner-sm"></div>
+    <span>Loading analytics…</span>
+  </div>
+
+  <ng-container *ngIf="!dataLoading && selectedCycle">
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SECTION 2 — KPI Cards
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="kpi-grid" [style.grid-template-columns]="kpiGridCols">
+
+      <!-- Dynamic milestone cards -->
+      <div *ngFor="let card of kpiCards; let i = index" class="kpi-card">
+        <div class="kpi-name">{{ card.name }}</div>
+        <div class="kpi-count">{{ card.completed }} / {{ card.total }}</div>
+        <div class="kpi-pct" [style.color]="chartPalette[i % chartPalette.length]">{{ card.pct }}%</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" [style.width.%]="card.pct"
+               [style.background]="chartPalette[i % chartPalette.length]"></div>
+        </div>
+        <div class="kpi-footer">
+          <span class="chip" [ngClass]="statusClass(card.status)">{{ statusLabel(card.status) }}</span>
+          <span class="kpi-due">Due {{ formatDate(card.endDate) }}</span>
+        </div>
+      </div>
+
+      <!-- Fixed: Published -->
+      <div class="kpi-card">
+        <div class="kpi-name">Published Manager Review</div>
+        <div class="kpi-count">{{ publishedCount }} / {{ allUsers.length }}</div>
+        <div class="kpi-pct kpi-pct--green">{{ publishedPct }}%</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill progress-bar-fill--green" [style.width.%]="publishedPct"></div>
+        </div>
+        <div class="kpi-footer">
+          <span class="kpi-meta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13" style="color:#16a34a">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Fully published reviews
+          </span>
+        </div>
+      </div>
+
+      <!-- Fixed: Health Score -->
+      <div class="kpi-card">
+        <div class="kpi-name">Cycle Health Score</div>
+        <div class="kpi-count">{{ healthScore }}%</div>
+        <div class="kpi-pct kpi-pct--muted">Overall completion</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill"
+               [ngClass]="healthScore >= 70 ? 'progress-bar-fill--green' : healthScore >= 40 ? 'progress-bar-fill--warn' : 'progress-bar-fill--danger'"
+               [style.width.%]="healthScore"></div>
+        </div>
+        <div class="kpi-footer"></div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SECTION 3 — Velocity Chart
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">Milestone Completion</h2>
+      </div>
+      <div class="chart-container" [style.height.px]="chartHeight">
+        <canvas #velocityCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SECTION — Peer Reviews
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="section" *ngIf="peerReviewRows.length > 0">
+      <div class="section-header section-header--row">
+        <h2 class="section-title">Peer Reviews</h2>
+        <div class="filter-tabs">
+          <button class="filter-btn" [class.filter-btn--active]="peerFilter === 'all'"
+                  (click)="peerFilter = 'all'">All ({{ flatPeerRows.length }})</button>
+          <button class="filter-btn" [class.filter-btn--active]="peerFilter === 'completed'"
+                  (click)="peerFilter = 'completed'">Completed</button>
+          <button class="filter-btn" [class.filter-btn--active]="peerFilter === 'in_progress'"
+                  (click)="peerFilter = 'in_progress'">In Progress</button>
+          <button class="filter-btn" [class.filter-btn--active]="peerFilter === 'not_started'"
+                  (click)="peerFilter = 'not_started'">Not Started</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Appointed Peer Name</th>
+              <th>Employee</th>
+              <th>Appointed By</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of filteredFlatPeerRows">
+              <td class="td-group">{{ row.peerName }}</td>
+              <td>{{ row.employeeName }}</td>
+              <td>{{ row.managerName }}</td>
+              <td>
+                <span class="chip"
+                      [ngClass]="(row.status === 'COMPLETED' || row.status === 'PUBLISHED') ? 'chip-on-track' :
+                                 row.status === 'IN_PROGRESS' ? 'chip-at-risk' : 'chip-not-started'">
+                  {{ (row.status === 'COMPLETED' || row.status === 'PUBLISHED') ? 'Completed' :
+                     row.status === 'IN_PROGRESS' ? 'In Progress' : 'Not Started' }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="filteredFlatPeerRows.length === 0">
+              <td colspan="4" class="td-empty">No peer reviews match this filter.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SECTION 4 — Completion Matrix
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="section">
+      <!-- Underline tabs -->
+      <div class="underline-tabs">
+        <button class="underline-tab" [class.underline-tab--active]="matrixTab === 'team'"
+                (click)="setMatrixTab('team')">By Team</button>
+        <button class="underline-tab" [class.underline-tab--active]="matrixTab === 'discipline'"
+                (click)="setMatrixTab('discipline')">By Discipline</button>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="th-sortable" (click)="sortMatrix('group')">
+                Group
+                <span class="sort-icon" *ngIf="matrixSortCol === 'group'">{{ matrixSortDir === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th class="th-sortable th-num" (click)="sortMatrix('headcount')">
+                Headcount
+                <span class="sort-icon" *ngIf="matrixSortCol === 'headcount'">{{ matrixSortDir === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th *ngFor="let m of milestones; let i = index"
+                  class="th-sortable th-num" (click)="sortMatrix('m_' + i)">
+                {{ m.name }}
+                <span class="sort-icon" *ngIf="matrixSortCol === 'm_' + i">{{ matrixSortDir === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th class="th-sortable th-num" (click)="sortMatrix('published')">
+                Published
+                <span class="sort-icon" *ngIf="matrixSortCol === 'published'">{{ matrixSortDir === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th class="th-sortable th-num" (click)="sortMatrix('overallPct')">
+                Overall %
+                <span class="sort-icon" *ngIf="matrixSortCol === 'overallPct'">{{ matrixSortDir === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of matrixRows">
+              <td class="td-group">{{ row.group }}</td>
+              <td class="td-num">{{ row.headcount }}</td>
+              <td *ngFor="let md of row.milestones" class="td-num td-milestone">
+                {{ md.completed }}/{{ md.total }}
+              </td>
+              <td class="td-num">{{ row.published }}/{{ row.headcount }}</td>
+              <td class="td-num td-bold">{{ row.overallPct }}%</td>
+              <td>
+                <span class="chip" [ngClass]="statusClass(row.status)">{{ statusLabel(row.status) }}</span>
+              </td>
+            </tr>
+            <tr *ngIf="matrixRows.length === 0">
+              <td [colSpan]="3 + milestones.length" class="td-empty">No data available for this cycle.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <div *ngIf="!dataLoading && !selectedCycle" class="empty-state">
+    No cycles available. Create a review cycle to see analytics.
+  </div>
+
+</div>

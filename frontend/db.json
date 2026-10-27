@@ -1,0 +1,358 @@
+{
+  "templates": [
+    {
+      "templateId": "tmpl-001",
+      "templateName": "Default Core Review",
+      "reviewType": "SELF_REVIEW",
+      "description": "Standard self assessment",
+      "questions": [
+        {
+          "questionId": "q-001",
+          "text": "What went well?",
+          "type": "TEXT",
+          "options": [],
+          "required": true,
+          "order": 1
+        }
+      ],
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "teams": [
+    {
+      "id": 1,
+      "managerName": "Michael Brown",
+      "managerTitle": "VP of Engineering",
+      "members": [
+        {
+          "name": "Sarah Johnson",
+          "role": "Engineering Manager",
+          "email": "manager@company.com"
+        },
+        {
+          "name": "Bob Smith",
+          "role": "Product Manager",
+          "email": "bob.s@company.com"
+        },
+        {
+          "name": "David Wilson",
+          "role": "Design Lead",
+          "email": "david.w@company.com"
+        },
+        {
+          "name": "James Carter",
+          "role": "DevOps Engineer",
+          "email": "james.c@company.com"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "managerName": "Sarah Johnson",
+      "managerTitle": "Engineering Manager",
+      "members": [
+        {
+          "name": "Alice Johnson",
+          "role": "Frontend Developer",
+          "email": "alice.j@company.com"
+        },
+        {
+          "name": "Diana Prince",
+          "role": "Backend Developer",
+          "email": "diana.p@company.com"
+        },
+        {
+          "name": "Ethan Lee",
+          "role": "Mobile Developer",
+          "email": "ethan.l@company.com"
+        },
+        {
+          "name": "Edward Norton",
+          "role": "QA Engineer",
+          "email": "edward.n@company.com"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "managerName": "Bob Smith",
+      "managerTitle": "Product Manager",
+      "members": [
+        {
+          "name": "Priya Patel",
+          "role": "Data Analyst",
+          "email": "priya.p@company.com"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "managerName": "David Wilson",
+      "managerTitle": "Design Lead",
+      "members": []
+    }
+  ],
+  "users": [
+    {
+      "id": "598e4498-40c1-70bd-498f-f9a7755bf134",
+      "userId": "598e4498-40c1-70bd-498f-f9a7755bf134",
+      "email": "kevin@gmail.com",
+      "firstName": "Michael",
+      "lastName": "Brown",
+      "role": "ADMIN",
+      "position": "VP of Engineering",
+      "status": "Active",
+      "reportingTo": "c9eef498-e0e1-7023-9aee-dceb821e8e86",
+      "hireDate": "2015-01-10"
+    },
+    {
+      "id": "c9eef498-e0e1-7023-9aee-dceb821e8e86",
+      "userId": "c9eef498-e0e1-7023-9aee-dceb821e8e86",
+      "email": "aartibhilarea.b3@gmail.com",
+      "firstName": "Sarah",
+      "lastName": "Johnson",
+      "role": "MANAGER",
+      "position": "Engineering Manager",
+      "status": "Active",
+      "reportingTo": "598e4498-40c1-70bd-498f-f9a7755bf134",
+      "hireDate": "2018-09-03"
+    },
+    {
+      "id": 3,
+      "userId": "usr003",
+      "email": "bob.s@company.com",
+      "firstName": "Bob",
+      "lastName": "Smith",
+      "role": "MANAGER",
+      "position": "Product Manager",
+      "status": "Active",
+      "reportingTo": "598e4498-40c1-70bd-498f-f9a7755bf134",
+      "hireDate": "2020-07-01"
+    },
+    {
+      "id": "c97ee488-4071-708a-855c-c5ab559536cc",
+      "userId": "c97ee488-4071-708a-855c-c5ab559536cc",
+      "email": "alice.j@company.com",
+      "firstName": "Alice",
+      "lastName": "Johnson",
+      "role": "EMPLOYEE",
+      "position": "Frontend Developer",
+      "status": "Active",
+      "reportingTo": "598e4498-40c1-70bd-498f-f9a7755bf134",
+      "hireDate": "2021-03-15"
+    },
+    {
+      "id": "095e9448-40a1-705e-a20d-68851bc742b6",
+      "userId": "095e9448-40a1-705e-a20d-68851bc742b6",
+      "email": "aartibhilarea.b@gmail.com",
+      "firstName": "Diana",
+      "lastName": "Prince",
+      "role": "EMPLOYEE",
+      "position": "Backend Developer",
+      "status": "Active",
+      "reportingTo": "598e4498-40c1-70bd-498f-f9a7755bf134",
+      "hireDate": "2019-06-10"
+    },
+    {
+      "id": 6,
+      "userId": "usr006",
+      "email": "david.w@company.com",
+      "firstName": "David",
+      "lastName": "Wilson",
+      "role": "MANAGER",
+      "position": "Design Lead",
+      "status": "Active",
+      "reportingTo": "usr001",
+      "hireDate": "2017-03-20"
+    },
+    {
+      "id": 7,
+      "userId": "usr007",
+      "email": "james.c@company.com",
+      "firstName": "James",
+      "lastName": "Carter",
+      "role": "EMPLOYEE",
+      "position": "DevOps Engineer",
+      "status": "Active",
+      "reportingTo": "usr001",
+      "hireDate": "2020-02-17"
+    },
+    {
+      "id": 8,
+      "userId": "usr008",
+      "email": "priya.p@company.com",
+      "firstName": "Priya",
+      "lastName": "Patel",
+      "role": "EMPLOYEE",
+      "position": "Data Analyst",
+      "status": "Active",
+      "reportingTo": "usr003",
+      "hireDate": "2021-08-30"
+    },
+    {
+      "id": 9,
+      "userId": "usr009",
+      "email": "ethan.l@company.com",
+      "firstName": "Ethan",
+      "lastName": "Lee",
+      "role": "EMPLOYEE",
+      "position": "Mobile Developer",
+      "status": "Active",
+      "reportingTo": "usr002",
+      "hireDate": "2021-12-10"
+    },
+    {
+      "id": 10,
+      "userId": "usr010",
+      "email": "edward.n@company.com",
+      "firstName": "Edward",
+      "lastName": "Norton",
+      "role": "EMPLOYEE",
+      "position": "QA Engineer",
+      "status": "Archived",
+      "reportingTo": "usr002",
+      "hireDate": "2023-01-08"
+    },
+    {
+      "id": 11,
+      "userId": "usr1775642120350",
+      "email": "aartibhilarea.b1@gmail.com",
+      "firstName": "Test",
+      "lastName": "bhililare",
+      "role": "MANAGER",
+      "position": "VP of Engineering",
+      "status": "Active",
+      "hireDate": "2026-04-06",
+      "reportingTo": "usr001"
+    }
+  ],
+  "reviews": [],
+  "cycles": [
+    {
+      "id": 1,
+      "cycleId": "cycle-001",
+      "cycleTitle": "Q1 2026",
+      "templateId": "template-001",
+      "startDate": "2026-01-01",
+      "dueDate": "2026-04-30",
+      "milestones": [
+        {
+          "milestoneId": "m1",
+          "name": "Employee Self Review",
+          "assignedRoles": [
+            "EMPLOYEE"
+          ],
+          "startDate": "2026-01-01",
+          "endDate": "2026-03-30",
+          "status": "COMPLETE"
+        },
+        {
+          "milestoneId": "m2",
+          "name": "Manager Review",
+          "assignedRoles": [
+            "MANAGER"
+          ],
+          "startDate": "2026-03-31",
+          "endDate": "2026-04-05",
+          "status": "COMPLETE"
+        },
+        {
+          "milestoneId": "m3",
+          "name": "Admin Review",
+          "assignedRoles": [
+            "ADMIN"
+          ],
+          "startDate": "2026-04-06",
+          "endDate": "2026-04-22",
+          "status": "IN_PROGRESS"
+        }
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": 2,
+      "cycleId": "cycle-002",
+      "cycleTitle": "Custom Cycle Test",
+      "templateId": "template-002",
+      "startDate": "2026-06-01",
+      "dueDate": "2026-06-30",
+      "milestones": [
+        {
+          "milestoneId": "m1",
+          "name": "Employee Self Review",
+          "assignedRoles": [
+            "EMPLOYEE"
+          ],
+          "startDate": "2026-06-01",
+          "endDate": "2026-06-05",
+          "status": "OPEN"
+        },
+        {
+          "milestoneId": "m2",
+          "name": "Manager Review",
+          "assignedRoles": [
+            "MANAGER"
+          ],
+          "startDate": "2026-06-06",
+          "endDate": "2026-06-10",
+          "status": "IN_PROGRESS"
+        },
+        {
+          "milestoneId": "m3",
+          "name": "Admin Review",
+          "assignedRoles": [
+            "ADMIN"
+          ],
+          "startDate": "2026-06-11",
+          "endDate": "2026-06-30",
+          "status": "NOT_STARTED"
+        }
+      ],
+      "status": "DRAFT"
+    },
+    {
+      "cycleTitle": "Untitled Cycle",
+      "startDate": "",
+      "dueDate": "",
+      "status": "DRAFT",
+      "milestones": [],
+      "publishAfter": false,
+      "id": 3
+    },
+    {
+      "cycleTitle": "sda",
+      "startDate": "2026-04-16",
+      "dueDate": "2026-05-07",
+      "status": "DRAFT",
+      "milestones": [
+        {
+          "name": "dsasda",
+          "startDate": "2026-04-22",
+          "endDate": "2026-04-22",
+          "description": "",
+          "trigger": "EMPLOYEE_SELF_REVIEW",
+          "templateSnapshot": {
+            "reviewType": "SELF_REVIEW",
+            "questions": [
+              {
+                "questionId": "29d57638-ce1d-4fb5-8b1f-31a8d2314479",
+                "text": "test ",
+                "type": "TEXT",
+                "options": [],
+                "required": true,
+                "order": 1
+              }
+            ],
+            "snapshotCreatedAt": "2026-04-25T12:18:57.870Z"
+          },
+          "assignedRoles": [
+            "EMPLOYEE"
+          ]
+        }
+      ],
+      "publishAfter": true,
+      "id": 4
+    }
+  ]
+}

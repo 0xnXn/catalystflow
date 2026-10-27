@@ -1,0 +1,144 @@
+.layout-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+.sidebar-wrapper {
+  flex: 0 0 260px;
+  width: 260px;
+  height: 100vh;
+  background-color: var(--color-primary);
+  transition: flex-basis 0.25s ease, width 0.25s ease, transform 0.3s ease-in-out;
+  z-index: 100;
+}
+
+.sidebar-collapsed .sidebar-wrapper {
+  flex: 0 0 64px;
+  width: 64px;
+}
+
+/* ── Floating edge toggle button ─────────────────────────────────────── */
+.sidebar-edge-toggle {
+  position: fixed;
+  top: 50%;
+  left: calc(260px - 12px);
+  transform: translateY(-50%);
+  z-index: 101;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  border: 1.5px solid var(--color-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: left 0.25s ease, opacity 0.2s ease, color 0.2s, box-shadow 0.2s;
+}
+
+/* Show on sidebar hover */
+.layout-container:hover .sidebar-edge-toggle { opacity: 1; }
+
+.sidebar-edge-toggle:hover {
+  color: var(--color-accent-strong);
+  border-color: var(--color-accent);
+  box-shadow: 0 2px 12px rgba(74, 144, 226,0.25);
+}
+
+/* Shift position when collapsed */
+.sidebar-edge-toggle.collapsed {
+  left: calc(64px - 12px);
+}
+
+.main-content {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 20px;
+  background-color: var(--color-background);
+  transition: padding-top 0.3s ease;
+}
+
+.menu-toggle {
+  display: none; /* Hidden on desktop */
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 110;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: var(--color-primary);
+  transition: all 0.2s ease;
+}
+
+.menu-toggle:hover {
+  background-color: var(--color-background);
+  color: var(--color-accent-strong);
+}
+
+.menu-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+}
+
+/* Tablet and Mobile styles */
+@media (max-width: 1024px) {
+  .sidebar-wrapper {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  }
+
+  .sidebar-wrapper.show {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    padding-top: 70px; /* Make space for the menu button */
+  }
+
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-open .menu-toggle {
+    left: min(270px, calc(100vw - 52px));
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* In the off-canvas (tablet/mobile) layout the sidebar is a drawer controlled
+     by the ☰ menu-toggle. The desktop edge-toggle is irrelevant here and was
+     left floating over page content — hide it. */
+  .sidebar-edge-toggle {
+    display: none;
+  }
+}

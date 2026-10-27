@@ -1,0 +1,304 @@
+<div class="modal-overlay" (click)="close()">
+  <div class="modal-content cycle-modal" (click)="$event.stopPropagation()">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <div>
+        <h3>{{ currentStep === 1 ? 'Create Performance Cycle' : 'Add Milestones' }}</h3>
+        <div class="modal-steps">
+          <span class="step-pill" [class.active]="currentStep === 1" [class.done]="currentStep > 1">1 · Cycle Details</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#DEDEDE" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <span class="step-pill" [class.active]="currentStep === 2">2 · Milestones</span>
+        </div>
+      </div>
+      <button class="modal-close" type="button" (click)="close()">&#x2715;</button>
+    </div>
+
+    <form #cycleForm="ngForm">
+      <div class="modal-body">
+
+        <!-- Submit error banner -->
+        <div class="submit-error-bar" *ngIf="showSubmitError">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          Please fix the highlighted fields before continuing.
+        </div>
+
+        <!-- ── STEP 1: BASIC INFORMATION ─────────────────────── -->
+        <ng-container *ngIf="currentStep === 1">
+        
+
+        <div class="form-group">
+          <label for="cycleName">Cycle Name</label>
+          <input
+            id="cycleName" name="cycleName" type="text"
+            required maxlength="100"
+            placeholder="e.g. Q1 2025 Performance Review"
+            [(ngModel)]="cycle.cycleTitle"
+            #cycleName="ngModel"
+            [class.invalid]="cycleName.invalid && cycleName.touched"
+          >
+          <div class="field-errors" *ngIf="cycleName.invalid && cycleName.touched">
+            <span class="error-msg">Cycle name is required.</span>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="startDate">Start Date</label>
+            <input
+              id="startDate" name="startDate" type="date"
+              required [min]="cycleStartMin" [max]="cycleStartMax"
+              [(ngModel)]="cycle.startDate"
+              #startDate="ngModel"
+              [class.invalid]="startDate.invalid && startDate.touched"
+              (change)="onCycleDateChange()"
+            >
+            <div class="field-errors" *ngIf="startDate.invalid && startDate.touched">
+              <span class="error-msg">Start date is required.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="endDate">End Date</label>
+            <input
+              id="endDate" name="endDate" type="date"
+              required [min]="cycleEndMin"
+              [(ngModel)]="cycle.dueDate"
+              #endDate="ngModel"
+              [disabled]="!cycle.startDate"
+              [class.invalid]="(endDate.invalid && endDate.touched) || !!dateRangeError"
+              [class.input-disabled]="!cycle.startDate"
+              (change)="onCycleDateChange()"
+            >
+            <div class="field-errors" *ngIf="(endDate.invalid && endDate.touched) || dateRangeError">
+              <span class="error-msg" *ngIf="endDate.invalid && endDate.touched && !dateRangeError">End date is required.</span>
+              <span class="error-msg" *ngIf="dateRangeError">{{ dateRangeError }}</span>
+            </div>
+          </div>
+        </div>
+
+        </ng-container><!-- end step 1 -->
+
+        <!-- ── STEP 2: MILESTONES ─────────────────────────────── -->
+        <ng-container *ngIf="currentStep === 2">
+        <div class="milestones-section">
+          <div class="milestones-header">
+            <p class="section-label mb0">Milestones</p>
+          </div>
+
+          <!-- Empty state -->
+          <div class="milestones-empty" *ngIf="milestones.length === 0">
+            <p class="empty-title">No milestones yet</p>
+            <p class="empty-sub">Add milestones to define key phases of this cycle</p>
+            <button type="button" class="btn-add-first" (click)="addMilestone()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add First Milestone
+            </button>
+          </div>
+
+          <!-- ── TIMELINE ───────────────────────────────────────── -->
+          <div class="timeline" *ngIf="milestones.length > 0">
+            <ng-container *ngFor="let origIdx of sortedIndices; let si = index; trackBy: trackByOrigIdx">
+
+              <div class="tl-item">
+                <!-- Left track: dot + connecting line -->
+                <div class="tl-track">
+                  <div class="tl-dot"
+                    [class.tl-dot-gap]="hasGapAfter(si)">
+                    {{ si + 1 }}
+                  </div>
+                  <div class="tl-line"
+                    [class.tl-line-last]="si === sortedIndices.length - 1"
+                    [class.tl-line-gap]="si < sortedIndices.length - 1 && hasGapAfter(si)">
+                  </div>
+                </div>
+
+                <!-- Right card -->
+                <div class="tl-card">
+
+                  <!-- Title + delete -->
+                  <div class="tl-card-top">
+                    <div style="flex:1; min-width:0;">
+                      <input
+                        class="tl-title-input"
+                        type="text"
+                        [name]="'mTitle' + origIdx"
+                        required
+                        placeholder="Milestone name..."
+                        [(ngModel)]="milestones[origIdx].name"
+                        #mTitle="ngModel"
+                        [class.invalid]="mTitle.invalid && mTitle.touched"
+                      >
+                      <span class="error-msg" *ngIf="mTitle.invalid && mTitle.touched">Name is required.</span>
+                    </div>
+                    <button type="button" class="tl-remove" (click)="removeMilestone(origIdx)" title="Delete milestone">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Dates -->
+                  <div class="tl-dates">
+                    <!-- Start -->
+                    <div class="tl-date-block">
+                      <span class="tl-date-label">Start</span>
+                      <input
+                        class="tl-date-input"
+                        type="date"
+                        [name]="'mStart' + origIdx"
+                        required
+                        [min]="getMilestoneStartMin(si)"
+                        [max]="getMilestoneStartMax(si)"
+                        [(ngModel)]="milestones[origIdx].startDate"
+                        #mStart="ngModel"
+                        [class.invalid]="mStart.invalid && mStart.touched"
+                      >
+                      <span class="error-msg tl-err" *ngIf="mStart.invalid && mStart.touched">Required</span>
+                    </div>
+
+                    <div class="tl-arrow">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                      </svg>
+                    </div>
+
+                    <!-- End -->
+                    <div class="tl-date-block">
+                      <span class="tl-date-label">End</span>
+                      <input
+                        class="tl-date-input"
+                        type="date"
+                        [name]="'mEnd' + origIdx"
+                        required
+                        [min]="getMilestoneEndMin(si)"
+                        [max]="getMilestoneEndMax(si)"
+                        [(ngModel)]="milestones[origIdx].endDate"
+                        #mEnd="ngModel"
+                        [class.invalid]="mEnd.invalid && mEnd.touched"
+                      >
+                      <span class="error-msg tl-err" *ngIf="mEnd.invalid && mEnd.touched">Required</span>
+                    </div>
+                  </div>
+
+                  <!-- Gap note -->
+                  <div class="tl-gap-note" *ngIf="hasGapAfter(si)">Gap before next milestone</div>
+
+                  <!-- Description -->
+                  <input
+                    class="tl-desc"
+                    type="text"
+                    [name]="'mDesc' + origIdx"
+                    placeholder="Add a description (optional)"
+                    [(ngModel)]="milestones[origIdx].description"
+                    maxlength="200"
+                  >
+
+                  <!-- Trigger -->
+                  <div class="tl-trigger-row">
+                    <span class="tl-trigger-label">Select Role</span>
+                    <select class="tl-trigger-select"
+                      [name]="'mTrigger' + origIdx"
+                      [(ngModel)]="milestones[origIdx].trigger">
+                      <option value="NONE">None</option>
+                      <option value="EMPLOYEE_SELF_REVIEW">Employee</option>
+                      <option value="MANAGER_REVIEW">Manager</option>
+                      <option value="ADMIN_REVIEW">Admin</option>
+                    </select>
+                  </div>
+
+                  <!-- Review Template section -->
+                  <app-milestone-template-section
+                    [snapshot]="milestones[origIdx].templateSnapshot"
+                    (createTemplate)="openBuildDrawer(origIdx)"
+                    (browseTemplates)="openBrowseDrawer(origIdx)"
+                    (editTemplate)="openEditDrawer(origIdx)"
+                    (removeTemplate)="removeTemplate(origIdx)">
+                  </app-milestone-template-section>
+
+                </div>
+              </div>
+
+            </ng-container>
+          </div>
+          <!-- end timeline -->
+
+          <!-- Add Milestone row — appears below the last card -->
+          <div class="tl-add-row" *ngIf="milestones.length > 0" (click)="addMilestone()">
+            <div class="tl-add-track">
+              <div class="tl-add-dot">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="tl-add-label">Add Milestone</div>
+          </div>
+
+        </div>
+        </ng-container><!-- end step 2 -->
+
+      </div>
+
+      <!-- FOOTER -->
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="currentStep === 1 ? close() : (currentStep = 1)">
+          {{ currentStep === 1 ? 'Cancel' : '← Back' }}
+        </button>
+        <div class="footer-actions">
+          <div class="publish-error" *ngIf="publishError">{{ publishError }}</div>
+          <!-- Step 1 footer -->
+          <ng-container *ngIf="currentStep === 1">
+            <button type="button" class="btn-submit" (click)="goToStep2(cycleForm)">
+              Next: Add Milestones →
+            </button>
+          </ng-container>
+          <!-- Step 2 footer -->
+          <ng-container *ngIf="currentStep === 2">
+            <button type="button" class="btn-draft-action" (click)="onSaveDraft(cycleForm)">Save as Draft</button>
+            <button type="button" class="btn-submit" (click)="onPublish(cycleForm)">Publish</button>
+          </ng-container>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- TEMPLATE BUILDER DRAWER (rendered outside modal scroll boundary) -->
+<app-template-builder-drawer
+  [open]="drawerOpen()"
+  [mode]="drawerMode()"
+  [existingQuestions]="activeEditQuestions"
+  (closed)="onDrawerClosed()"
+  (templateAttached)="onTemplateAttached($event)">
+</app-template-builder-drawer>
+
+<!-- PUBLISH CONFIRMATION -->
+<div class="confirm-overlay modal-overlay" *ngIf="showPublishConfirm" (click)="cancelPublish()">
+  <div class="confirm-modal" (click)="$event.stopPropagation()">
+    <div class="confirm-icon-wrap update">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Publish Cycle?</h3>
+    <p class="confirm-sub">
+      This cycle will be <strong>scheduled</strong> and automatically become
+      <strong>Active</strong> on <strong>{{ cycle.startDate | date:'MMM d, yyyy' }}</strong>.
+      <br><br>
+      You can still edit it before the start date.
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelPublish()">Cancel</button>
+      <button class="btn-confirm update" (click)="confirmPublish()">Confirm & Publish</button>
+    </div>
+  </div>
+</div>

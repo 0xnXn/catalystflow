@@ -1,0 +1,225 @@
+<!-- Header -->
+<div class="qb-header">
+  <div>
+    <h2 class="qb-title">Build Questions</h2>
+    <p class="qb-sub">{{ questions().length }} question{{ questions().length !== 1 ? 's' : '' }} · drag to reorder</p>
+  </div>
+  <div class="qb-header-actions">
+    <button class="qb-btn-outline" (click)="fileInput.click()" title="Import from Excel / CSV">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Import
+    </button>
+    <input #fileInput type="file" accept=".xlsx,.xls,.csv" (change)="onFileSelected($event)" hidden>
+    <button class="qb-btn-outline qb-btn-danger" (click)="clearAll()" *ngIf="questions().length">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      </svg>
+      Clear
+    </button>
+  </div>
+</div>
+
+<!-- Empty state -->
+<div class="qb-empty" *ngIf="!questions().length">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#DEDEDE" stroke-width="1.5" width="44" height="44">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+  </svg>
+  <p class="qb-empty-title">No questions yet</p>
+  <p class="qb-empty-sub">Add a question type below or import from Excel</p>
+</div>
+
+<!-- Question list with drag-drop -->
+<div class="qb-list" cdkDropList (cdkDropListDropped)="onDrop($event)">
+  <div class="qb-card"
+       *ngFor="let q of questions(); let i = index; trackBy: trackById"
+       cdkDrag [cdkDragData]="q">
+
+    <div class="drag-placeholder" *cdkDragPlaceholder></div>
+
+    <div class="qb-card-layout">
+      <!-- Grip + number -->
+      <div class="qb-grip" cdkDragHandle title="Drag to reorder">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+          <circle cx="7" cy="5"  r="1.5"/><circle cx="13" cy="5"  r="1.5"/>
+          <circle cx="7" cy="10" r="1.5"/><circle cx="13" cy="10" r="1.5"/>
+          <circle cx="7" cy="15" r="1.5"/><circle cx="13" cy="15" r="1.5"/>
+        </svg>
+        <span class="qb-num">{{ i + 1 }}</span>
+      </div>
+
+      <!-- Body -->
+      <div class="qb-body">
+        <!-- Question text -->
+        <div class="qb-text-row">
+          <input class="qb-text-input"
+                 [(ngModel)]="q.text"
+                 (ngModelChange)="onQuestionChange(q)"
+                 placeholder="Type your question here…"
+                 [class.empty]="!q.text">
+          <span class="qb-badge-required" *ngIf="q.required">Required</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="qb-controls">
+          <!-- Type selector -->
+          <div class="qb-type-selector">
+            <!-- Type icons -->
+            <svg *ngIf="q.type === 'TEXT'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+              <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+            </svg>
+            <svg *ngIf="q.type === 'RATING'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            <svg *ngIf="q.type === 'CHECKBOX'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/>
+            </svg>
+            <svg *ngIf="q.type === 'SINGLE_SELECT'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+            </svg>
+            <svg *ngIf="q.type === 'MULTI_SELECT'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            <select class="qb-type-select"
+                    [(ngModel)]="q.type"
+                    (ngModelChange)="onTypeChange(q, $event)">
+              <option *ngFor="let t of questionTypes" [value]="t">{{ typeLabels[t] }}</option>
+            </select>
+          </div>
+
+          <!-- Required toggle -->
+          <label class="qb-toggle-label">
+            <input type="checkbox" class="qb-toggle-input"
+                   [(ngModel)]="q.required"
+                   (ngModelChange)="onQuestionChange(q)">
+            <span class="qb-toggle-track"><span class="qb-toggle-thumb"></span></span>
+            <span class="qb-toggle-text">Required</span>
+          </label>
+        </div>
+
+        <!-- Options (checkbox / select types) -->
+        <div class="qb-options" *ngIf="needsOptions(q.type)">
+          <span class="qb-options-label">Answer Options</span>
+          <div class="qb-options-list">
+            <div class="qb-option-row"
+                 *ngFor="let opt of q.options || []; let j = index; trackBy: trackByIdx">
+              <svg *ngIf="q.type === 'SINGLE_SELECT'" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" width="13" height="13">
+                <circle cx="12" cy="12" r="9"/>
+              </svg>
+              <svg *ngIf="q.type !== 'SINGLE_SELECT'" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" width="13" height="13">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              <input class="qb-option-input"
+                     [value]="opt"
+                     (input)="onOptionChange(q, j, $any($event.target).value)"
+                     placeholder="Option text…">
+              <button class="qb-icon-btn" (click)="removeOption(q, j)"
+                      *ngIf="(q.options || []).length > 1" title="Remove option">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button class="qb-btn-text" (click)="addOption(q)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Option
+          </button>
+        </div>
+
+        <!-- AI Rubric (collapsible) -->
+        <div class="qb-rubric">
+          <button class="qb-btn-text qb-btn-muted" (click)="toggleIdeal(q.questionId)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
+            </svg>
+            AI Rubric
+            <span class="qb-badge-future" *ngIf="!idealOpen[q.questionId]">Future</span>
+            <svg *ngIf="idealOpen[q.questionId]"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="18 15 12 9 6 15"/></svg>
+            <svg *ngIf="!idealOpen[q.questionId]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <textarea class="qb-rubric-textarea" *ngIf="idealOpen[q.questionId]"
+                    [(ngModel)]="q.idealResponse"
+                    (ngModelChange)="onQuestionChange(q)"
+                    placeholder="Describe the ideal response for AI-assisted scoring…"
+                    rows="2">
+          </textarea>
+        </div>
+      </div>
+
+      <!-- Delete -->
+      <button class="qb-delete-btn" (click)="removeQuestion(q.questionId)" title="Delete question">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add question bar -->
+<div class="qb-add-bar">
+  <span class="qb-add-label">Add:</span>
+  <button class="qb-add-btn" (click)="addQuestion('TEXT')" title="Long Text">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+      <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+    </svg>
+    Text
+  </button>
+  <button class="qb-add-btn" (click)="addQuestion('RATING')" title="Star Rating">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+    Rating
+  </button>
+  <button class="qb-add-btn" (click)="addQuestion('CHECKBOX')" title="Checkboxes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/>
+    </svg>
+    Checkbox
+  </button>
+  <button class="qb-add-btn" (click)="addQuestion('SINGLE_SELECT')" title="Single Choice">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+    </svg>
+    Single
+  </button>
+  <button class="qb-add-btn" (click)="addQuestion('MULTI_SELECT')" title="Multi Select">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+      <line x1="8" y1="18" x2="21" y2="18"/>
+      <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/>
+      <circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/>
+      <circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+    Multi
+  </button>
+</div>
+
+<!-- Footer -->
+<div class="qb-footer">
+  <button class="qb-btn-primary" (click)="onNext()" [disabled]="!questions().length">
+    Preview Form
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  </button>
+</div>

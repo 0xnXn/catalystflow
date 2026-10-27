@@ -1,0 +1,61 @@
+{
+  "name": "catalystflow-frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "start:proxy": "ng serve --proxy-config proxy.conf.json",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "json-server": "json-server --watch db.json --port 3000",
+    "start:mock": "concurrently \"npm run json-server\" \"npm start\"",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCI",
+    "test:coverage": "ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^18.0.0",
+    "@angular/cdk": "^18.2.14",
+    "@angular/common": "^18.0.0",
+    "@angular/compiler": "^18.0.0",
+    "@angular/core": "^18.0.0",
+    "@angular/forms": "^18.0.0",
+    "@angular/platform-browser": "^18.0.0",
+    "@angular/platform-browser-dynamic": "^18.0.0",
+    "@angular/router": "^18.0.0",
+    "@angular/service-worker": "^18.0.0",
+    "@ngx-formly/bootstrap": "^7.1.0",
+    "@ngx-formly/core": "^7.1.0",
+    "amazon-cognito-identity-js": "^6.3.16",
+    "chart.js": "^4.5.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "xlsx": "^0.18.5",
+    "zone.js": "~0.14.3"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^18.0.6",
+    "@angular/cli": "^18.0.6",
+    "@angular/compiler-cli": "^18.0.0",
+    "@types/jasmine": "~5.1.0",
+    "concurrently": "^8.0.0",
+    "jasmine-core": "~5.1.0",
+    "json-server": "^0.17.4",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "puppeteer": "^24.40.0",
+    "typescript": "~5.4.2"
+  },
+  "author": "Nixon",
+  "overrides": {
+    "piscina": "4.9.4",
+    "proxy-addr": "2.0.8",
+    "shell-quote": "1.11.0",
+    "tar": "7.5.19",
+    "websocket-driver": "0.7.5"
+  }
+}

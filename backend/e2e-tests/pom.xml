@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Standalone E2E test module — intentionally NOT a child of the root POM.
+
+        These tests hit a real deployed API Gateway + Cognito + DynamoDB.
+        They are never run as part of the standard mvn build cycle.
+        The buildspec-e2e.yml stage runs them explicitly after deployment.
+
+        Required env vars (set by buildspec-e2e.yml):
+          E2E_API_URL            — https://<id>.execute-api.ap-southeast-2.amazonaws.com/Prod
+          COGNITO_USER_POOL_ID   — ap-southeast-2_XXXXXXXX
+          COGNITO_CLIENT_ID      — Cognito app client ID (must have ALLOW_ADMIN_USER_PASSWORD_AUTH)
+          USERS_TABLE_NAME       — CatalystFlow_Users (or staging equivalent)
+          AWS_DEFAULT_REGION     — ap-southeast-2
+
+        Required CodeBuild IAM permissions:
+          cognito-idp:AdminCreateUser
+          cognito-idp:AdminSetUserPassword
+          cognito-idp:AdminAddUserToGroup
+          cognito-idp:AdminInitiateAuth
+          cognito-idp:AdminGetUser
+          cognito-idp:AdminDeleteUser
+          dynamodb:PutItem    on CatalystFlow_Users_dev (bootstrap admin record)
+          dynamodb:DeleteItem on CatalystFlow_Users_dev,
+                                  CatalystFlow_Reviews_dev,
+                                  CatalystFlow_ReviewCycles_dev,
+                                  CatalystFlow_ReviewTemplates_dev (teardown)
+    -->
+
+    <groupId>com.catalystflow</groupId>
+    <artifactId>e2e-tests</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>e2e-tests</name>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <aws.sdk.version>2.26.27</aws.sdk.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+      <!-- Keep Netty's patch release aligned across runtime and E2E dependencies. -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.1.137.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.4.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cognitoidentityprovider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>url-connection-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.17.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.13</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <includes>
+                        <include>**/*E2ETest.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

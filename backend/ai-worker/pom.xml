@@ -1,0 +1,139 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.catalystflow</groupId>
+    <artifactId>back-end</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>ai-worker</artifactId>
+  <packaging>jar</packaging>
+  <name>ai-worker</name>
+
+  <!--
+       SQS-driven worker that runs Gemini for AiReviewService jobs (Epic 5 G2).
+
+       Why a separate module: Quarkus refuses to build a JAR containing both
+       quarkus-amazon-lambda-rest (the JAX-RS bridge used by ai-service) AND
+       a custom RequestHandler. They're mutually exclusive at build time.
+       So the worker lives in its own JAR, depending on ai-service for the
+       shared service / repository / model classes.
+  -->
+
+  <dependencies>
+    <!-- Shared service + repository + models from ai-service.
+         Only exclude quarkus-amazon-lambda-rest — Quarkus refuses to build a
+         JAR with both that REST bridge AND a custom RequestHandler bean.
+         Keep quarkus-resteasy-jackson: AiReviewService throws/catches
+         jakarta.ws.rs.BadRequestException, which it provides. -->
+    <dependency>
+      <groupId>com.catalystflow</groupId>
+      <artifactId>ai-service</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.quarkus</groupId>
+          <artifactId>quarkus-amazon-lambda-rest</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Raw Lambda runtime — picks our @Named RequestHandler bean -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-amazon-lambda</artifactId>
+    </dependency>
+
+    <!-- SQSEvent / SQSBatchResponse types -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-lambda-java-events</artifactId>
+      <version>3.11.5</version>
+    </dependency>
+
+    <!-- DynamoDB — same AiJobs table as the API -->
+    <dependency>
+      <groupId>io.quarkiverse.amazonservices</groupId>
+      <artifactId>quarkus-amazon-dynamodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Inline mockmaker — required to mock Quarkus-AOT-transformed classes
+         like AiReviewService that ship as final at test time. -->
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-check</id>
+            <phase>test</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.80</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

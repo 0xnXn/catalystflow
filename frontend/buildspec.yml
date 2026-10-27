@@ -1,0 +1,25 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+    - npm ci
+  pre_build:
+    commands:
+    - export API_URL=$(aws ssm get-parameter --name /catalystflow/dev/backendApiUrl
+      --query Parameter.Value --output text)
+    - node scripts/configure.mjs
+  build:
+    commands:
+    - npm run build -- --configuration production
+    - cp buildspec-deploy.yml dist/catalystflow-frontend/browser/buildspec-deploy.yml
+    - (cd dist/catalystflow-frontend/browser && find . -type f ! -name artifact-checksums.txt
+      -print0 | sort -z | xargs -0 sha256sum > artifact-checksums.txt)
+artifacts:
+  base-directory: dist/catalystflow-frontend/browser
+  files:
+  - '**/*'
+cache:
+  paths:
+  - /root/.npm/**/*

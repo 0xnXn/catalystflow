@@ -1,0 +1,394 @@
+.cycle-modal { max-width: 660px; }
+
+/* ── STEP INDICATOR ─────────────────────────────────────────── */
+.modal-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.step-pill {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--color-background);
+  transition: all 0.15s;
+}
+.step-pill.active {
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+}
+.step-pill.done {
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+}
+
+/* ── SUBMIT ERROR BAR ───────────────────────────────────────── */
+.submit-error-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 18px;
+}
+
+/* ── UTILITIES ──────────────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 14px 0;
+}
+.mb0 { margin-bottom: 0 !important; }
+
+/* ── MILESTONES SECTION ─────────────────────────────────────── */
+.milestones-section { margin-top: 22px; }
+
+.milestones-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+/* ── ADD FIRST MILESTONE (empty state button) ───────────────── */
+.btn-add-first {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  color: var(--color-accent-strong);
+  border: 1.5px solid var(--color-accent);
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 6px;
+}
+.btn-add-first:hover { background: var(--color-accent-soft); }
+
+/* ── EMPTY STATE ────────────────────────────────────────────── */
+.milestones-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 10px;
+  background: #fafafa;
+  gap: 5px;
+}
+.empty-title { margin: 0; font-size: 13px; font-weight: 600; color: #94a3b8; }
+.empty-sub   { margin: 0; font-size: 12px; color: var(--color-border); }
+
+/* ── OVERLAP BANNER ─────────────────────────────────────────── */
+.overlap-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b91c1c;
+  margin-bottom: 14px;
+}
+
+/* ── TIMELINE CONTAINER ─────────────────────────────────────── */
+.timeline { display: flex; flex-direction: column; }
+
+/* ── TIMELINE ITEM ──────────────────────────────────────────── */
+.tl-item {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+}
+
+/* ── TRACK (dot + line) ─────────────────────────────────────── */
+.tl-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  padding-top: 2px;
+}
+
+.tl-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+  transition: background 0.2s, box-shadow 0.2s;
+  z-index: 1;
+}
+
+.tl-dot-error {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px #fef2f2;
+}
+
+.tl-dot-gap {
+  box-shadow: 0 0 0 3px #fef9c3;
+}
+
+.tl-line {
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background: var(--color-border);
+  margin: 4px 0 4px 0;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.tl-line-last {
+  background: linear-gradient(to bottom, var(--color-border), transparent);
+  min-height: 10px;
+}
+
+.tl-line-gap {
+  background: repeating-linear-gradient(
+    to bottom,
+    #fbbf24 0px,
+    #fbbf24 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+.tl-line-error {
+  background: #fca5a5;
+}
+
+/* ── CARD ───────────────────────────────────────────────────── */
+.tl-card {
+  flex: 1;
+  min-width: 0;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.tl-card-error {
+  border-color: #fca5a5;
+  background: #fff8f8;
+}
+
+/* ── CARD TOP (title + delete) ──────────────────────────────── */
+.tl-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tl-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1.5px solid var(--color-background);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  padding: 2px 0 6px 0;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.tl-title-input::placeholder { color: var(--color-border); font-weight: 400; }
+.tl-title-input:focus { border-bottom-color: var(--color-accent); }
+.tl-title-input.invalid { border-bottom-color: #ef4444; }
+
+.tl-remove {
+  background: none;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 5px;
+  border-radius: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-remove:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+/* ── DATES ROW ──────────────────────────────────────────────── */
+.tl-dates {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.tl-date-block { flex: 1; }
+
+.tl-date-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.tl-date-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  font-family: inherit;
+}
+.tl-date-input:focus { border-color: var(--color-accent); background: white; box-shadow: 0 0 0 3px rgba(74, 144, 226,0.1); }
+.tl-date-input.invalid { border-color: #ef4444; background: #fff8f8; }
+
+.tl-arrow {
+  flex-shrink: 0;
+  margin-top: 18px;
+  color: #94a3b8;
+}
+
+.tl-err  { display: block; font-size: 10px; color: #dc2626; margin-top: 3px; }
+.tl-hint { display: block; font-size: 10px; color: #94a3b8; margin-top: 3px; }
+
+/* ── GAP NOTE ───────────────────────────────────────────────── */
+.tl-gap-note {
+  font-size: 11px;
+  color: #b45309;
+  margin-top: 6px;
+}
+
+/* ── ADD MILESTONE ROW (below last card) ────────────────────── */
+.tl-add-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  padding: 6px 0 2px 0;
+  border-radius: 8px;
+  transition: opacity 0.15s;
+}
+.tl-add-row:hover .tl-add-dot  { background: var(--color-accent-strong); transform: scale(1.1); }
+.tl-add-row:hover .tl-add-label { color: var(--color-accent-strong); }
+
+.tl-add-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.tl-add-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(74, 144, 226,0.3);
+}
+
+.tl-add-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-strong);
+  transition: color 0.2s;
+  user-select: none;
+}
+
+/* ── TRIGGER ROW ─────────────────────────────────────────────── */
+.tl-trigger-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-background);
+}
+
+.tl-trigger-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-trigger-select {
+  flex: 1;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fafafa;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+.tl-trigger-select:focus { border-color: var(--color-accent); background: white; }
+.tl-trigger-select option[value="EMPLOYEE_SELF_REVIEW"] { color: var(--color-accent-strong); }
+.tl-trigger-select option[value="MANAGER_REVIEW"]       { color: #2563eb; }
+.tl-trigger-select option[value="ADMIN_REVIEW"]         { color: #7c3aed; }
+
+/* ── DESCRIPTION ────────────────────────────────────────────── */
+.tl-desc {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 6px 0 2px 0;
+  border-top: 1px solid var(--color-background);
+  outline: none;
+  margin-top: 8px;
+  transition: color 0.2s;
+}
+.tl-desc::placeholder { color: var(--color-border); font-style: italic; }
+.tl-desc:focus { color: var(--color-primary); }

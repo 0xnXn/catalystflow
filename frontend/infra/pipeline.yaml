@@ -1,0 +1,513 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CatalystFlow gated delivery: unit, integration, build, security, development deployment and E2E.",
+  "Parameters": {
+    "RepositoryName": {
+      "Type": "String",
+      "Default": "CatalystFlow-frontend"
+    },
+    "BranchName": {
+      "Type": "String",
+      "Default": "main"
+    },
+    "PipelineRoleArn": {
+      "Type": "String",
+      "Description": "Existing personal-account CodePipeline service role"
+    },
+    "BuildRoleArn": {
+      "Type": "String",
+      "Description": "Existing personal-account CodeBuild service role"
+    },
+    "ArtifactBucket": {
+      "Type": "String",
+      "Description": "Existing private artifact bucket in this account and region"
+    },
+    "BuildEnvironmentVariables": {
+      "Type": "String",
+      "Default": "[]",
+      "Description": "CodePipeline JSON environment overrides. Use Parameter Store for secrets."
+    },
+    "CheckRoleArn": {
+      "Type": "String",
+      "Description": "Role for build/test/security; cannot deploy application resources"
+    },
+    "E2ERoleArn": {
+      "Type": "String",
+      "Description": "Role for isolated development E2E fixtures"
+    },
+    "TriggerRoleArn": {
+      "Type": "String",
+      "Description": "EventBridge role limited to starting CatalystFlow pipelines"
+    }
+  },
+  "Resources": {
+    "UnitTests": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-unittests"
+        },
+        "ServiceRole": {
+          "Ref": "CheckRoleArn"
+        },
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Source": {
+          "Type": "CODEPIPELINE",
+          "BuildSpec": "buildspec-test.yml"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": false
+        },
+        "Cache": {
+          "Type": "S3",
+          "Location": {
+            "Fn::Sub": "${ArtifactBucket}/cache/CatalystFlow-frontend/UnitTests"
+          }
+        },
+        "TimeoutInMinutes": 45
+      }
+    },
+    "IntegrationTests": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-integrationtests"
+        },
+        "ServiceRole": {
+          "Ref": "CheckRoleArn"
+        },
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Source": {
+          "Type": "CODEPIPELINE",
+          "BuildSpec": "buildspec-integration.yml"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": false
+        },
+        "Cache": {
+          "Type": "S3",
+          "Location": {
+            "Fn::Sub": "${ArtifactBucket}/cache/CatalystFlow-frontend/IntegrationTests"
+          }
+        },
+        "TimeoutInMinutes": 45
+      }
+    },
+    "Build": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceRole": {
+          "Ref": "CheckRoleArn"
+        },
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Source": {
+          "Type": "CODEPIPELINE",
+          "BuildSpec": "buildspec.yml"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": false
+        },
+        "Cache": {
+          "Type": "S3",
+          "Location": {
+            "Fn::Sub": "${ArtifactBucket}/cache/CatalystFlow-frontend/Build"
+          }
+        },
+        "TimeoutInMinutes": 45
+      }
+    },
+    "SecurityScan": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-securityscan"
+        },
+        "ServiceRole": {
+          "Ref": "CheckRoleArn"
+        },
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Source": {
+          "Type": "CODEPIPELINE",
+          "BuildSpec": "buildspec-security.yml"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": false
+        },
+        "Cache": {
+          "Type": "S3",
+          "Location": {
+            "Fn::Sub": "${ArtifactBucket}/cache/CatalystFlow-frontend/SecurityScan"
+          }
+        },
+        "TimeoutInMinutes": 45
+      }
+    },
+    "Deploy": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-deploy"
+        },
+        "ServiceRole": {
+          "Ref": "BuildRoleArn"
+        },
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Source": {
+          "Type": "CODEPIPELINE",
+          "BuildSpec": "buildspec-deploy.yml"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": false
+        },
+        "Cache": {
+          "Type": "S3",
+          "Location": {
+            "Fn::Sub": "${ArtifactBucket}/cache/CatalystFlow-frontend/Deploy"
+          }
+        },
+        "TimeoutInMinutes": 45
+      }
+    },
+    "E2E": {
+      "Type": "AWS::CodeBuild::Project",
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-e2e"
+        },
+        "ServiceRole": {
+          "Ref": "CheckRoleArn"
+        },
+        "Artifacts": {
+          "Type": "CODEPIPELINE"
+        },
+        "Source": {
+          "Type": "CODEPIPELINE",
+          "BuildSpec": "buildspec-e2e.yml"
+        },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_MEDIUM",
+          "Image": "aws/codebuild/standard:7.0",
+          "PrivilegedMode": false
+        },
+        "Cache": {
+          "Type": "S3",
+          "Location": {
+            "Fn::Sub": "${ArtifactBucket}/cache/CatalystFlow-frontend/E2E"
+          }
+        },
+        "TimeoutInMinutes": 45
+      }
+    },
+    "Pipeline": {
+      "Type": "AWS::CodePipeline::Pipeline",
+      "Properties": {
+        "RoleArn": {
+          "Ref": "PipelineRoleArn"
+        },
+        "ArtifactStore": {
+          "Type": "S3",
+          "Location": {
+            "Ref": "ArtifactBucket"
+          }
+        },
+        "Stages": [
+          {
+            "Name": "Source",
+            "Actions": [
+              {
+                "Name": "Source",
+                "ActionTypeId": {
+                  "Category": "Source",
+                  "Owner": "AWS",
+                  "Provider": "CodeCommit",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "RepositoryName": {
+                    "Ref": "RepositoryName"
+                  },
+                  "BranchName": {
+                    "Ref": "BranchName"
+                  },
+                  "PollForSourceChanges": "false"
+                },
+                "OutputArtifacts": [
+                  {
+                    "Name": "Source"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Name": "UnitTests",
+            "Actions": [
+              {
+                "Name": "UnitTests",
+                "ActionTypeId": {
+                  "Category": "Test",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": {
+                    "Ref": "UnitTests"
+                  },
+                  "PrimarySource": "Source",
+                  "EnvironmentVariables": {
+                    "Ref": "BuildEnvironmentVariables"
+                  }
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "Source"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Name": "IntegrationTests",
+            "Actions": [
+              {
+                "Name": "IntegrationTests",
+                "ActionTypeId": {
+                  "Category": "Test",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": {
+                    "Ref": "IntegrationTests"
+                  },
+                  "PrimarySource": "Source",
+                  "EnvironmentVariables": {
+                    "Ref": "BuildEnvironmentVariables"
+                  }
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "Source"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Name": "Build",
+            "Actions": [
+              {
+                "Name": "Build",
+                "ActionTypeId": {
+                  "Category": "Build",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": {
+                    "Ref": "Build"
+                  },
+                  "PrimarySource": "Source",
+                  "EnvironmentVariables": {
+                    "Ref": "BuildEnvironmentVariables"
+                  }
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "Source"
+                  }
+                ],
+                "OutputArtifacts": [
+                  {
+                    "Name": "BuildOutput"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Name": "SecurityScan",
+            "Actions": [
+              {
+                "Name": "SecurityScan",
+                "ActionTypeId": {
+                  "Category": "Test",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": {
+                    "Ref": "SecurityScan"
+                  },
+                  "PrimarySource": "Source",
+                  "EnvironmentVariables": {
+                    "Ref": "BuildEnvironmentVariables"
+                  }
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "Source"
+                  },
+                  {
+                    "Name": "BuildOutput"
+                  }
+                ],
+                "OutputArtifacts": [
+                  {
+                    "Name": "SecurityReports"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Name": "Deploy",
+            "Actions": [
+              {
+                "Name": "Deploy",
+                "ActionTypeId": {
+                  "Category": "Build",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": {
+                    "Ref": "Deploy"
+                  },
+                  "PrimarySource": "BuildOutput",
+                  "EnvironmentVariables": {
+                    "Ref": "BuildEnvironmentVariables"
+                  }
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "BuildOutput"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Name": "E2E",
+            "Actions": [
+              {
+                "Name": "E2E",
+                "ActionTypeId": {
+                  "Category": "Test",
+                  "Owner": "AWS",
+                  "Provider": "CodeBuild",
+                  "Version": "1"
+                },
+                "Configuration": {
+                  "ProjectName": {
+                    "Ref": "E2E"
+                  },
+                  "PrimarySource": "Source",
+                  "EnvironmentVariables": {
+                    "Ref": "BuildEnvironmentVariables"
+                  }
+                },
+                "InputArtifacts": [
+                  {
+                    "Name": "Source"
+                  }
+                ],
+                "OutputArtifacts": [
+                  {
+                    "Name": "BrowserReports"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "PipelineType": "V2",
+        "ExecutionMode": "QUEUED"
+      }
+    },
+    "CommitTrigger": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "EventPattern": {
+          "source": [
+            "aws.codecommit"
+          ],
+          "detail-type": [
+            "CodeCommit Repository State Change"
+          ],
+          "resources": [
+            {
+              "Fn::Sub": "arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepositoryName}"
+            }
+          ],
+          "detail": {
+            "event": [
+              "referenceCreated",
+              "referenceUpdated"
+            ],
+            "referenceType": [
+              "branch"
+            ],
+            "referenceName": [
+              {
+                "Ref": "BranchName"
+              }
+            ]
+          }
+        },
+        "Targets": [
+          {
+            "Id": "Pipeline",
+            "Arn": {
+              "Fn::Sub": "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
+            },
+            "RoleArn": {
+              "Ref": "TriggerRoleArn"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PipelineName": {
+      "Value": {
+        "Ref": "Pipeline"
+      }
+    }
+  }
+}

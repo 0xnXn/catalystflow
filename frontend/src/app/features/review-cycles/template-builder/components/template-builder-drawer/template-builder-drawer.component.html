@@ -1,0 +1,94 @@
+<ng-container *ngIf="open">
+  <!-- Backdrop -->
+  <div class="tbd-backdrop" (click)="close()"></div>
+
+  <!-- Drawer panel -->
+  <div class="tbd-panel" [class.tbd-panel--wide]="step() === 'questions' || mode === 'browse'">
+
+    <!-- Drawer header -->
+    <div class="tbd-header">
+      <div class="tbd-header-left">
+        <!-- Step indicator (build/edit modes) -->
+        <ng-container *ngIf="mode !== 'browse'">
+          <div class="tbd-steps">
+            <span class="tbd-step" [class.active]="step() === 'questions'" [class.done]="currentStep > 1">
+              <span class="tbd-step-num">1</span> Build
+            </span>
+            <span class="tbd-step-divider"></span>
+            <span class="tbd-step" [class.active]="step() === 'preview'" [class.done]="currentStep > 2">
+              <span class="tbd-step-num">2</span> Preview
+            </span>
+            <span class="tbd-step-divider"></span>
+            <span class="tbd-step" [class.active]="step() === 'save-prompt'">
+              <span class="tbd-step-num">3</span> Save
+            </span>
+          </div>
+        </ng-container>
+        <!-- Browse mode label -->
+        <ng-container *ngIf="mode === 'browse'">
+          <span class="tbd-mode-label">Use Saved Template</span>
+        </ng-container>
+      </div>
+
+      <button class="tbd-close" (click)="close()" aria-label="Close drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Drawer body -->
+    <div class="tbd-body">
+
+      <!-- Step 1 / Edit: Question Builder -->
+      <app-template-question-builder
+        *ngIf="(mode === 'build' || mode === 'edit') && step() === 'questions'"
+        [initialQuestions]="questions()"
+        (next)="onQuestionsNext($event)">
+      </app-template-question-builder>
+
+      <!-- Step 2: Preview -->
+      <app-template-preview
+        *ngIf="step() === 'preview'"
+        [questions]="questions()"
+        (back)="onPreviewBack()"
+        (saveAndAttach)="onSaveAndAttach()">
+      </app-template-preview>
+
+      <!-- Step 3: Save prompt overlay -->
+      <div class="tbd-save-overlay" *ngIf="step() === 'save-prompt'">
+        <app-template-save-prompt
+          [editMode]="mode === 'edit'"
+          [initialName]="editingTemplate?.templateName"
+          [initialType]="editingTemplate?.reviewType"
+          [initialDescription]="editingTemplate?.description"
+          (result)="onSavePromptResult($event, svc)"
+          (cancel)="onSavePromptCancel()">
+        </app-template-save-prompt>
+
+        <!-- Saving indicator -->
+        <div class="tbd-saving" *ngIf="saving()">
+          <div class="tbd-spinner"></div>
+          Saving template…
+        </div>
+
+        <!-- Save error -->
+        <div class="tbd-save-error" *ngIf="saveError()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ saveError() }}
+          <button class="tbd-err-skip" (click)="attachSnapshot()">Attach without saving</button>
+        </div>
+      </div>
+
+      <!-- Browse mode: Saved templates grid -->
+      <app-saved-templates-grid
+        *ngIf="mode === 'browse'"
+        (templateSelected)="onBrowseSelect($event)"
+        (back)="close()">
+      </app-saved-templates-grid>
+
+    </div>
+  </div>
+</ng-container>

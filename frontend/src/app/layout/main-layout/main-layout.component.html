@@ -1,0 +1,37 @@
+<div class="layout-container" [class.sidebar-open]="isSidebarVisible" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Menu toggle button for mobile -->
+  <button class="menu-toggle" (click)="toggleSidebar()" aria-label="Toggle menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar overlay for mobile -->
+  <div class="sidebar-overlay" (click)="closeSidebar()" *ngIf="isSidebarVisible"></div>
+
+  <app-sidebar
+    class="sidebar-wrapper"
+    [class.show]="isSidebarVisible"
+    (linkClick)="closeSidebar()"
+    (collapsedChange)="onSidebarCollapsed($event)"
+    #sidebarRef>
+  </app-sidebar>
+
+  <!-- Floating edge toggle — sits on the sidebar/content boundary -->
+  <button class="sidebar-edge-toggle"
+    [class.collapsed]="isSidebarCollapsed"
+    (click)="sidebarRef.toggleCollapse()"
+    [title]="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"
+      [style.transform]="isSidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)'"
+      style="transition: transform 0.25s ease">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

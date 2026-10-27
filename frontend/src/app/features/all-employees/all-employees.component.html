@@ -1,0 +1,352 @@
+<!-- NOTIFICATION BANNER -->
+<div class="notification-banner" *ngIf="notification.show"
+  [class.success]="notification.type === 'success'"
+  [class.error]="notification.type === 'error'">
+  <svg *ngIf="notification.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+  <svg *ngIf="notification.type === 'error'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="15" y1="9" x2="9" y2="15"></line>
+    <line x1="9" y1="9" x2="15" y2="15"></line>
+  </svg>
+  <span>{{ notification.message }}</span>
+  <button class="notification-close" (click)="notification.show = false">✕</button>
+</div>
+
+<div class="page-container" [class.blurred]="isModalOpen || isEditModalOpen || confirmModal.open">
+
+  <!-- TOP SECTION -->
+  <div class="top-section">
+    <div class="page-header">
+      <h1 class="page-title">Organisation Employees</h1>
+      <p class="page-subtitle">Manage your organisation's employees and their details</p>
+    </div>
+    <div class="stats-grid">
+      <button class="stat-card total" (click)="statusFilter = ''; typeFilter = ''; filterEmployees()">
+        <p class="stat-label">Total Employees</p>
+        <p class="stat-value">{{ employees.length }}</p>
+      </button>
+      <button class="stat-card" [class.active]="statusFilter === 'Active'" (click)="filterBy('Active')">
+        <p class="stat-label">Active</p>
+        <p class="stat-value">{{ activeCount }}</p>
+      </button>
+      <button class="stat-card" [class.archived]="statusFilter === 'Archived'" (click)="filterBy('Archived')">
+        <p class="stat-label">Archived</p>
+        <p class="stat-value">{{ archivedCount }}</p>
+      </button>
+    </div>
+  </div>
+
+  <!-- BOTTOM SECTION -->
+  <div class="bottom-section">
+    <div class="table-container">
+
+      <div class="table-controls">
+        <!-- BUG-004: count is tab-aware — was always filteredEmployees.length, so on the
+             Team Structure tab the number changed with the search while the list did not. -->
+        <h2 class="section-title">{{ activeTab === 'structure' ? 'Teams (' + filteredTeamStructure.length + ')' : 'Employees (' + filteredEmployees.length + ')' }}</h2>
+        <div class="controls-row">
+          <div class="search-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              name="employeeSearch"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="filterEmployees()"
+              placeholder="Search by name, email, or role..."
+              class="search-input">
+          </div>
+          <div class="controls-right">
+            <div class="filter-wrapper" [class.active]="statusFilter">
+              <select [(ngModel)]="statusFilter" (ngModelChange)="filterEmployees()" class="filter-select">
+                <option value="">All Status</option>
+                <option value="Active">Active Only</option>
+                <option value="Archived">Archived Only</option>
+              </select>
+            </div>
+            <div class="filter-wrapper" [class.active]="typeFilter">
+              <select [(ngModel)]="typeFilter" (ngModelChange)="filterEmployees()" class="filter-select">
+                <option value="">All Types</option>
+                <option value="Admin">Admin</option>
+                <option value="Manager">Manager</option>
+                <option value="Employee">Employee</option>
+              </select>
+            </div>
+            <button class="btn-add" (click)="openModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Employee
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs">
+        <div class="tabs-left">
+          <button class="tab-btn" [class.active]="activeTab === 'employees'" (click)="activeTab = 'employees'; teamHint = ''">
+            All Employees
+          </button>
+          <button class="tab-btn" [class.active]="activeTab === 'structure'" (click)="activeTab = 'structure'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Team Structure
+          </button>
+        </div>
+      </div>
+
+      <!-- SKELETON: shown only on first load before any rows resolve. -->
+      <div class="table-wrapper" *ngIf="isLoading && activeTab === 'employees'">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Email</th><th>Position</th>
+              <th>Reports To</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let _ of [1,2,3,4,5,6]">
+              <td><app-skeleton width="75%" height="14px"></app-skeleton></td>
+              <td><app-skeleton width="85%" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="65%" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="70%" height="13px"></app-skeleton></td>
+              <td><app-skeleton width="60px" height="22px" radius="999px"></app-skeleton></td>
+              <td>
+                <span style="display:inline-flex; gap:8px;">
+                  <app-skeleton width="28px" height="28px" radius="6px"></app-skeleton>
+                  <app-skeleton width="28px" height="28px" radius="6px"></app-skeleton>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ALL EMPLOYEES TAB -->
+      <div class="table-wrapper" *ngIf="activeTab === 'employees' && !isLoading">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Position</th>
+              <th>Reports To</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let emp of filteredEmployees">
+              <td class="font-semibold">{{ emp.name }}</td>
+              <td>{{ emp.email }}</td>
+              <td>{{ emp.role }}</td>
+              <td>{{ emp.reportsTo }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="emp.status.toLowerCase()">
+                  {{ emp.status }}
+                </span>
+              </td>
+              <td>
+                <div class="action-btns">
+                  <button class="icon-action" title="Edit" (click)="openEditModal(emp)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path>
+                    </svg>
+                  </button>
+                  <button class="icon-action danger" title="Archive" (click)="deleteEmployee(emp)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredEmployees.length === 0">
+              <td colspan="6" class="no-results">
+                <span *ngIf="searchTerm">No employees found matching "{{ searchTerm }}"</span>
+                <span *ngIf="!searchTerm">No employees match the selected filters.</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TEAM STRUCTURE TAB — ACCORDION -->
+      <div class="structure-wrapper" *ngIf="activeTab === 'structure' && !isLoading">
+        <div *ngIf="teamHint" class="team-hint-banner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ teamHint }}</span>
+          <button (click)="teamHint = ''">✕</button>
+        </div>
+        <div *ngIf="filteredTeamStructure.length === 0" class="no-results" style="text-align:center; padding: 40px 0; color: #6b7280;">
+          {{ searchTerm ? 'No teams match "' + searchTerm + '".' : 'No team structure available. Assign managers to employees to build teams.' }}
+        </div>
+        <div class="accordion-item" *ngFor="let team of filteredTeamStructure" [id]="'team-' + team.managerId">
+
+          <!-- ACCORDION HEADER -->
+          <div class="accordion-header" [class.open]="team.managerId === expandedTeam" (click)="toggleTeam(team)">
+            <div class="team-header-left">
+              <div class="manager-avatar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="manager-name">{{ team.managerName }}</h3>
+                <p class="manager-title">{{ team.managerTitle }}</p>
+              </div>
+            </div>
+            <div class="team-header-right">
+              <span class="member-count">
+                {{ team.members.length }} Member{{ team.members.length !== 1 ? 's' : '' }}
+              </span>
+              <button class="icon-btn" title="Edit Manager"
+                (click)="$event.stopPropagation(); openEditModal(getManagerAsEmployee(team))">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path>
+                </svg>
+              </button>
+              <svg class="chevron" [class.open]="team.managerId === expandedTeam"
+                xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+
+          <!-- ACCORDION BODY -->
+          <div class="accordion-body" [class.open]="team.managerId === expandedTeam">
+            <div class="members-grid">
+              <div class="member-card" *ngFor="let member of team.members">
+                <div class="member-info">
+                  <p class="member-name">{{ member.name }}</p>
+                  <p class="member-role">{{ member.role }}</p>
+                  <p class="member-email">{{ member.email }}</p>
+                </div>
+                <div class="member-actions">
+                  <button class="icon-action" title="Edit Employee"
+                    (click)="openEditModal(getEmployeeByEmail(member.email))">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path>
+                    </svg>
+                  </button>
+                  <button class="icon-action unlink" title="Unlink from Manager"
+                    (click)="unlinkEmployee(member, team)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 17H7A5 5 0 0 1 7 7"></path>
+                      <path d="M15 7h2a5 5 0 0 1 4 8"></path>
+                      <line x1="8" y1="12" x2="12" y2="12"></line>
+                      <line x1="2" y1="2" x2="22" y2="22"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE MODAL -->
+<app-add-employee-modal
+  *ngIf="isModalOpen"
+  [employees]="employees"
+  [today]="today"
+  (closed)="closeModal()"
+  (submitted)="onAddSubmitted($event)"
+  (notify)="showNotification($event.message, $event.type)">
+</app-add-employee-modal>
+
+<!-- EDIT EMPLOYEE MODAL -->
+<app-edit-employee-modal
+  *ngIf="isEditModalOpen && selectedEmployee"
+  [employee]="selectedEmployee!"
+  [employees]="employees"
+  [today]="today"
+  (closed)="closeEditModal()"
+  (submitted)="onEditSubmitted($event)"
+  (notify)="showNotification($event.message, $event.type)"
+  (viewTeam)="onViewTeam($event)">
+</app-edit-employee-modal>
+
+<!-- CONFIRMATION MODAL (archive) -->
+<div class="modal-overlay confirm-overlay" *ngIf="confirmModal.open">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap" [class.delete]="confirmModal.type === 'delete'" [class.update]="confirmModal.type === 'update'">
+      <svg *ngIf="confirmModal.type === 'delete'" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+        <path d="M10 11v6"></path>
+        <path d="M14 11v6"></path>
+        <path d="M9 6V4h6v2"></path>
+      </svg>
+      <svg *ngIf="confirmModal.type === 'update'" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+        <path d="M9 12l2 2 4-4"></path>
+      </svg>
+    </div>
+    <h3 class="confirm-title">{{ confirmModal.message }}</h3>
+    <p class="confirm-sub">{{ confirmModal.subMessage }}</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="closeConfirm()">Cancel</button>
+      <button class="btn-confirm"
+        [class.delete]="confirmModal.type === 'delete'"
+        [class.update]="confirmModal.type === 'update'"
+        (click)="handleConfirm()">
+        {{ confirmModal.type === 'delete' ? 'Yes, Archive' : 'Yes, Update' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE BLOCK POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="archiveBlockModal.open">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap delete">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Can't archive {{ archiveBlockModal.name }}</h3>
+    <p class="confirm-sub">
+      They still manage <strong>{{ archiveBlockModal.count }} active employee{{ archiveBlockModal.count > 1 ? 's' : '' }}</strong>.
+      Unlink them from the Team Structure first, then archive.
+    </p>
+    <p class="confirm-sub" style="margin-top: 8px;">Would you like to view their team now?</p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="closeArchiveBlock()">Cancel</button>
+      <button class="btn-confirm delete" (click)="onArchiveBlockViewTeam()">Yes, View Team</button>
+    </div>
+  </div>
+</div>

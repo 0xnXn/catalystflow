@@ -1,0 +1,19 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: '3.12'
+    commands:
+    - pip install --quiet aws-sam-cli
+  pre_build:
+    commands:
+    - sha256sum --check artifact-checksums.txt
+    - sam validate --template-file template.yaml
+  build:
+    commands:
+    - sam deploy --template-file template.yaml --stack-name catalystflow-backend-dev
+      --s3-bucket "$ARTIFACT_BUCKET" --s3-prefix application --parameter-overrides
+      Environment=dev LambdaRuntime=java21 "CognitoUserPoolId=$COGNITO_USER_POOL_ID"
+      "FrontendBaseUrl=$FRONTEND_BASE_URL" "DevCloudFrontDistributionArn=$CLOUDFRONT_ARN"
+      "ProdCloudFrontDistributionArn=$CLOUDFRONT_ARN" --capabilities CAPABILITY_IAM
+      --no-confirm-changeset --no-fail-on-empty-changeset

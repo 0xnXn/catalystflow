@@ -1,0 +1,181 @@
+<div class="modal-backdrop" (click)="back()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div>
+        <h1 class="modal-title">Assign Peer Reviewers
+          <span *ngIf="subject"> for {{ subject.firstName }} {{ subject.lastName }}</span>
+        </h1>
+        <p class="modal-sub">Cycle: <strong>{{ cycle?.cycleTitle || '…' }}</strong></p>
+      </div>
+      <button class="modal-close" (click)="back()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-banner modal-banner--error" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="modal-banner modal-banner--success" *ngIf="successMessage">{{ successMessage }}</div>
+    <div class="modal-banner modal-banner--error" *ngIf="!loading && !peer360Template">
+      This cycle doesn't have a Peer 360 milestone. Ask an admin to add one first.
+    </div>
+    <div class="modal-banner modal-banner--locked" *ngIf="!loading && selfReviewSubmitted">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      Manager review has been submitted — peer assignments are now locked and cannot be changed.
+    </div>
+
+    <!-- Scope toggle -->
+    <div class="scope-row" *ngIf="!loading && peer360Template">
+      <label class="toggle-switch">
+        <input type="checkbox" [(ngModel)]="showOutsideTeam" (change)="onScopeToggle()" />
+        <span class="toggle-track"></span>
+      </label>
+      <div>
+        <div class="scope-label">Show employees outside this team</div>
+        <div class="scope-hint">
+          {{ showOutsideTeam ? 'Showing the full company directory.' : 'Showing only direct teammates of ' + (subject?.firstName || 'this employee') + '.' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Skeleton -->
+    <div *ngIf="loading" class="modal-body">
+      <div class="peer-grid">
+        <div class="peer-col">
+          <app-skeleton width="160px" height="15px"></app-skeleton>
+          <div *ngFor="let _ of [1,2,3]" style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F4F4F4">
+            <app-skeleton width="18px" height="18px" radius="4px"></app-skeleton>
+            <app-skeleton width="32px" height="32px" radius="50%"></app-skeleton>
+            <div><app-skeleton width="120px" height="13px"></app-skeleton></div>
+          </div>
+        </div>
+        <div class="peer-col">
+          <app-skeleton width="180px" height="15px"></app-skeleton>
+          <div *ngFor="let _ of [1,2]" style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F4F4F4">
+            <app-skeleton width="32px" height="32px" radius="50%"></app-skeleton>
+            <app-skeleton width="120px" height="13px"></app-skeleton>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="modal-body" *ngIf="!loading && peer360Template">
+      <div class="peer-grid">
+
+        <!-- Left: Eligible -->
+        <div class="peer-col">
+          <div class="col-header">
+            <div class="col-icon col-icon--eligible">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="col-title">Eligible reviewers ({{ eligible.length }})</div>
+              <div class="col-sub">Select peer reviewers</div>
+            </div>
+          </div>
+
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input class="search-input" type="text" placeholder="Search by name, role, or email..."
+              [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" />
+          </div>
+
+          <div class="peer-list">
+            <ng-container *ngFor="let group of groupedEligible">
+              <div class="group-header" (click)="toggleGroup(group.managerId)">
+                <div class="group-header-left">
+                  <svg class="group-chevron" [class.collapsed]="isGroupCollapsed(group.managerId)"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  <span class="group-name">{{ group.managerName }}</span>
+                  <span class="group-count">{{ group.peers.length }}</span>
+                </div>
+                <span class="group-selected" *ngIf="groupSelectedCount(group.peers) > 0">
+                  {{ groupSelectedCount(group.peers) }} selected
+                </span>
+              </div>
+              <ng-container *ngIf="!isGroupCollapsed(group.managerId)">
+                <div *ngFor="let e of group.peers" class="peer-row" [class.selected]="e.selected">
+                  <label class="peer-row-label">
+                    <input type="checkbox" [(ngModel)]="e.selected" name="peer-{{ e.user.userId }}" [disabled]="selfReviewSubmitted" />
+                    <div class="peer-avatar">{{ initials(e.user) }}</div>
+                    <div>
+                      <div class="peer-name">{{ e.user.firstName }} {{ e.user.lastName }}</div>
+                      <div class="peer-role">{{ e.user.position || e.user.role }}</div>
+                    </div>
+                  </label>
+                </div>
+              </ng-container>
+            </ng-container>
+            <div *ngIf="groupedEligible.length === 0" class="peer-empty">No eligible teammates found.</div>
+          </div>
+
+          <button class="btn-assign-selected" [disabled]="!canAssign() || selfReviewSubmitted" (click)="assignSelected()">
+            {{ saving ? 'Assigning…' : 'Assign selected (' + selectedCount() + ')' }}
+          </button>
+        </div>
+
+        <div class="peer-divider"></div>
+
+        <!-- Right: Assigned -->
+        <div class="peer-col">
+          <div class="col-header">
+            <div class="col-icon col-icon--assigned">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="col-title">Currently assigned ({{ assignments.length }})</div>
+              <div class="col-sub">Assigned peer reviewers</div>
+            </div>
+          </div>
+
+          <div class="peer-list">
+            <div class="assigned-row" *ngFor="let a of assignments">
+              <div class="assigned-info">
+                <div class="peer-name">{{ authorName(a.authorUserId) }}</div>
+                <span class="status-pill" [ngClass]="statusClass(a.status)">{{ statusLabel(a.status) }}</span>
+              </div>
+              <button class="btn-remove" [disabled]="!canRemove(a) || selfReviewSubmitted" (click)="removeAssignment(a)"
+                [title]="selfReviewSubmitted ? 'Locked — employee has submitted' : (canRemove(a) ? 'Remove' : 'Peer has started — cannot remove')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div *ngIf="assignments.length === 0" class="peer-empty">No reviewers assigned yet.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="back()">Cancel</button>
+      <button class="btn-save" (click)="back()">Save Assignments</button>
+    </div>
+
+  </div>
+</div>

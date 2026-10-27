@@ -1,0 +1,9 @@
+Company values
+
+Collaboration: communicate clearly, support colleagues and share useful knowledge.
+Ownership: follow through on commitments and surface risks early.
+Quality: validate work with evidence and improve reliability.
+Learning: seek feedback and apply lessons to future work.
+Customer outcomes: connect technical decisions to user needs.
+
+These are sample values for the CatalystFlow demonstration. Configure values for your own organisation before use.

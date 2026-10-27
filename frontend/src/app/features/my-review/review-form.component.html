@@ -1,0 +1,352 @@
+<div class="review-page">
+
+  <!-- ── Sticky header (top bar + readonly banner grouped) ── -->
+  <div class="sticky-header">
+    <div class="top-bar">
+      <nav class="breadcrumb">
+        <a (click)="cancel()">My Review</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+        <span>{{ titleFor() }}</span>
+      </nav>
+
+      @if (!loading && questions.length > 0) {
+        <div class="top-bar-right">
+          @if (!readonlyReview) {
+            <div class="autosave-pill">
+              @if (autoSaveStatus === 'saving') {
+                <span class="autosave-indicator saving"><span class="autosave-spinner"></span>Saving…</span>
+              }
+              @if (autoSaveStatus === 'saved') {
+                <span class="autosave-indicator saved">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Saved {{ autoSavedAgo }}
+                </span>
+              }
+              @if (autoSaveStatus === 'error') {
+                <span class="autosave-indicator error">Auto-save failed</span>
+              }
+            </div>
+          }
+          <button class="btn-export" (click)="exportToPdf()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export PDF
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (reviewType === 'PEER_360' && peerSubjectName && !loading && !readonlyReview) {
+      <div class="banner banner--info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        You're writing 360 feedback for <strong>&nbsp;{{ peerSubjectName }}</strong>.
+      </div>
+    }
+  </div>
+  @if (milestoneExpired && !readonlyReview && !loading) {
+    <div class="banner banner--error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+        <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      The submission deadline has passed. You can no longer submit.
+    </div>
+  }
+  @if (validationErrors.length > 0) {
+    <div class="validation-hint" id="validation-banner" role="alert" aria-live="polite">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>
+        <strong>{{ validationErrors.length }} required {{ validationErrors.length === 1 ? 'question is' : 'questions are' }} incomplete.</strong>
+        Please complete the highlighted {{ validationErrors.length === 1 ? 'field' : 'fields' }} before submitting your review.
+      </span>
+    </div>
+  }
+  @if (errorMsg && !loading) {
+    <div class="banner banner--error">{{ errorMsg }}</div>
+  }
+
+  <!-- ── Skeleton ── -->
+  @if (loading) {
+    <div class="form-shell">
+      <div class="questions-col">
+        @for (_ of [1, 2, 3]; track $index) {
+          <div class="question-card">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <app-skeleton width="26px" height="26px" radius="50%"></app-skeleton>
+              <app-skeleton width="55%" height="13px"></app-skeleton>
+            </div>
+            <div style="margin-top:12px;"><app-skeleton width="100%" height="72px" radius="8px"></app-skeleton></div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Read-only document view (submitted / published review) ── -->
+  @if (!loading && questions.length > 0 && readonlyReview) {
+    <div class="review-doc">
+
+      <div class="doc-summary">
+        <div class="doc-summary-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+        </div>
+        <div class="doc-summary-text">
+          <h2 class="doc-summary-title">{{ titleFor() }}</h2>
+          <p class="doc-summary-meta">
+            {{ cycle?.cycleTitle }}@if (submittedDateLabel) { <span class="doc-summary-sep">·</span> Submitted {{ submittedDateLabel }} }
+          </p>
+        </div>
+        <span class="doc-summary-badge">{{ statusLabel }}</span>
+      </div>
+
+      <div class="doc-qa-list">
+        @for (question of questions; track question.questionId; let i = $index) {
+          <div class="doc-qa-item">
+            <div class="doc-qa-q">
+              <span class="doc-qa-num">Q{{ i + 1 }}</span>
+              <span class="doc-qa-q-text">{{ question.text }}</span>
+            </div>
+            <div class="doc-qa-a">
+              @if (isAnswerEmpty(question)) {
+                <span class="doc-qa-empty">Not answered</span>
+              } @else if (isRatingQuestion(question)) {
+                <div class="doc-qa-stars">
+                  @for (n of ratingArray(question.scale); track n) {
+                    <svg class="doc-star" [class.filled]="ratingValue(question.questionId) >= n"
+                         viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  }
+                  <span class="doc-qa-rating-val">{{ ratingValue(question.questionId) }}/{{ question.scale || 5 }}</span>
+                </div>
+              } @else if (isYesNoQuestion(question)) {
+                <span class="doc-qa-chip">{{ yesNoAnswer(question) }}</span>
+              } @else if (isMultiSelectQuestion(question) || isSingleSelectQuestion(question)) {
+                <div class="doc-qa-chips">
+                  @for (opt of selectedOptions(question); track opt) {
+                    <span class="doc-qa-chip">{{ opt }}</span>
+                  }
+                </div>
+              } @else {
+                <p class="doc-qa-text">{{ textAnswer(question) }}</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Main form ── -->
+  @if (!loading && questions.length > 0 && !readonlyReview) {
+    <div class="form-shell">
+
+      <!-- Left: step navigator -->
+      <aside class="step-nav">
+        <div class="step-nav-header">
+          <span class="step-nav-title">Questions</span>
+          <span class="step-nav-count">{{ answeredCount }}/{{ questions.length }}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="progressPct"></div>
+        </div>
+        <ul class="step-list">
+          @for (q of questions; track q.questionId; let i = $index) {
+            <li class="step-item"
+                [class.answered]="isAnswered(q)"
+                [class.in-progress]="isInProgress(q)"
+                [class.missing]="missingQuestionIds.has(q.questionId)"
+                (click)="scrollToQuestion(q.questionId)">
+              <span class="step-dot">
+                @if (isAnswered(q)) {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                } @else {
+                  {{ i + 1 }}
+                }
+              </span>
+              <span class="step-label">{{ q.text | slice:0:42 }}{{ q.text.length > 42 ? '…' : '' }}</span>
+            </li>
+          }
+        </ul>
+      </aside>
+
+      <!-- Right: questions -->
+      <div class="questions-col">
+
+        @for (question of questions; track question.questionId; let i = $index) {
+          <div class="question-card"
+               [id]="'q-' + question.questionId"
+               [class.has-feedback-card]="!!getQuestionFeedback(question)"
+               [class.question-missing]="missingQuestionIds.has(question.questionId)"
+               [class.question-answered]="isAnswered(question)">
+
+            <div class="question-header">
+              <span class="question-number">Q{{ i + 1 }}</span>
+              <span class="question-label">
+                {{ question.text }}
+                @if (question.required) { <span class="required">*</span> }
+              </span>
+            </div>
+
+            @if (getQuestionFeedback(question); as feedback) {
+              @if (feedback.verdict === 'STRONG' && feedback.suggestions.length > 0) {
+                <div class="inline-feedback strong">
+                  <span class="inline-feedback-badge">Looking strong</span>
+                  <ul class="inline-suggestion-list">
+                    @for (s of feedback.suggestions; track s) { <li>{{ s }}</li> }
+                  </ul>
+                </div>
+              }
+              @if (feedback.verdict !== 'STRONG' && feedback.suggestions.length > 0) {
+                <div class="inline-feedback needs-improvement">
+                  <span class="inline-feedback-badge">A few things to consider</span>
+                  <ul class="inline-suggestion-list">
+                    @for (s of feedback.suggestions; track s) { <li>{{ s }}</li> }
+                  </ul>
+                </div>
+              }
+            }
+
+            @if (isTextQuestion(question)) {
+              <textarea
+                class="q-input"
+                rows="3"
+                [autosize]="responses[question.questionId]"
+                placeholder="Type your answer here…"
+                [readonly]="readonlyReview"
+                [class.readonly-input]="readonlyReview"
+                [class.input-missing]="missingQuestionIds.has(question.questionId)"
+                [(ngModel)]="responses[question.questionId]"
+                (ngModelChange)="clearMissing(question.questionId); triggerAutoSave()">
+              </textarea>
+              @if (!readonlyReview) {
+                <div class="q-input-footer">
+                  <span class="word-count" [class.word-count--low]="belowAiThreshold(question)">
+                    {{ wordsTyped(question) }} {{ wordsTyped(question) === 1 ? 'word' : 'words' }}
+                  </span>
+                  @if (belowAiThreshold(question)) {
+                    <span class="word-hint">Aim for 2–3 sentences — more detail means richer feedback.</span>
+                  }
+                </div>
+                @if (isFlaggedJunk(question)) {
+                  <p class="junk-error">Please write a complete answer — “N/A” or a single character won't be accepted.</p>
+                }
+              }
+            }
+
+            @if (isRatingQuestion(question)) {
+              <div class="q-rating" [class.input-missing]="missingQuestionIds.has(question.questionId)">
+                @for (n of ratingArray(question.scale); track n) {
+                  <button type="button" class="rating-star"
+                    [class.active]="ratingValue(question.questionId) >= n"
+                    (click)="setRating(question.questionId, n); clearMissing(question.questionId)">
+                    <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </button>
+                }
+                <span class="rating-value">{{ ratingValue(question.questionId) }}/{{ question.scale || 5 }}</span>
+              </div>
+            }
+
+            @if (isYesNoQuestion(question)) {
+              <div class="q-yesno">
+                <label class="radio-pill"><input type="radio" [name]="question.questionId" value="yes" [disabled]="readonlyReview" [(ngModel)]="responses[question.questionId]"/><span>Yes</span></label>
+                <label class="radio-pill"><input type="radio" [name]="question.questionId" value="no"  [disabled]="readonlyReview" [(ngModel)]="responses[question.questionId]"/><span>No</span></label>
+              </div>
+            }
+
+            @if (isMultiSelectQuestion(question)) {
+              <div class="q-multi">
+                @for (opt of question.options; track opt) {
+                  <label class="check-pill">
+                    <input type="checkbox" [checked]="isChecked(question.questionId, opt)" [disabled]="readonlyReview" (change)="toggleMulti(question.questionId, opt)"/>
+                    <span>{{ opt }}</span>
+                  </label>
+                }
+              </div>
+            }
+
+            @if (isSingleSelectQuestion(question)) {
+              <div class="q-single">
+                @for (opt of question.options; track opt) {
+                  <label class="radio-pill">
+                    <input type="radio" [name]="question.questionId" [value]="opt" [disabled]="readonlyReview" [(ngModel)]="responses[question.questionId]"/>
+                    <span>{{ opt }}</span>
+                  </label>
+                }
+              </div>
+            }
+
+          </div>
+        }
+
+        @if (!readonlyReview) {
+          @if (aiError) {
+            <div class="banner banner--error" role="alert" aria-live="polite">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>{{ aiError }}</span>
+            </div>
+          }
+          <div class="form-actions">
+            <button class="btn secondary" [disabled]="saving || milestoneExpired" (click)="save('DRAFT')">
+              {{ saving ? 'Saving…' : 'Save Draft' }}
+            </button>
+            <div class="form-actions-right">
+              <button class="btn ai-btn"
+                [disabled]="aiButtonDisabled"
+                [title]="aiButtonTooltip"
+                (click)="runAiAnalysis()">
+                @if (aiLoading) {
+                  <span class="btn-mini-spinner"></span>Analysing…
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  Get Suggestions
+                }
+              </button>
+              @if (!milestoneExpired) {
+                <button class="btn submit" [disabled]="saving" (click)="save('COMPLETED')">
+                  {{ saving ? 'Submitting…' : 'Submit Review' }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  @if (!loading && questions.length === 0 && !errorMsg) {
+    <div class="empty-state">
+      <p>No questions available for this review.</p>
+      <button class="btn secondary" (click)="cancel()">Go Back</button>
+    </div>
+  }
+
+</div>

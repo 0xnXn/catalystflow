@@ -1,0 +1,456 @@
+Manager review sample data
+
+Consultant 1
+Technology/Core Skills Appraisal Comments
+Peter demonstrates competent core skills appropriate for their Managing Consultant role. While
+primarily focused on delivery leadership, he maintains technical involvement through code
+reviews and technical discussions. As noted by a colleague, "Peter's role has primarily been one of
+delivery but he has successfully turned their hand to technical issues in .net when required."
+On the Dynamite project, he shows strong architectural understanding, noting that "to support
+the team with delivery is imperative I understand the current and target architecture, identify
+impacts and liaise with relevant teams for a successful delivery." Another colleague confirms their
+technical contributions, stating he "has a solid understanding of the project requirements and gets
+involved in almost every tech design discussion."
+He effectively manages delivery cadence and progress communication through "fortnightly
+showcases improving over time after the feedback received." Peter ensures appropriate quality of
+deliverables, with a colleague noting their "ability to care about the quality of deliverables, by
+ensuring everything can be and is well tested attributed to the project's success."
+Their scope management is strong despite challenges, being "constantly on top of any scope
+creep and the impact it has to the project." This has been particularly important given the
+"unplanned issues as well as undesired inherited problems" encountered during the Dynamite
+refactoring.
+Peter provides estimates effectively despite significant unknowns in the project, successfully
+delivering major milestones like "NECDS and WebUI pilot." He also demonstrates ability to lead
+technical problem-solving sessions while creating space for team members to contribute,
+particularly ensuring that "quiet/shy people [can] solve problems of the appropriate skill level and
+with the correct support."
+their involvement extends to "production troubleshooting when required, particularly for critical
+and high priority issues," showing their ability to handle technical escalations appropriately. A
+client recognises that Peter's "task management skills and knowledge of coding helps the team to
+achieve the planning works and milestones."
+Consulting Appraisal Comments
+Peter effectively manages stakeholder relationships at TNT, particularly in challenging
+circumstances. As one colleague states, "It's clear that without Peter's ownership of the delivery
+of the Dynamite project at TNT, the project would not only have not been a success but is unlikely
+to have ever made it to production."
+He demonstrates good stakeholder management skills, with a colleague noting he "has done a
+good job managing the sometimes tense relationships we have had with the stakeholders at TNT."
+Another colleague highlights their communication effectiveness: "When he presents in the
+showcase to the client, he could explain complicated tech concepts in a way that non-tech
+stockholders could easily understand."
+Peter has worked to improve client relationships at TNT following earlier feedback, successfully
+turning challenging situations around. He notes, "A good example was when we were proposing
+to do the final release in 3 phases... during an SOS I managed the conversation in a way that
+Patricia was very supportive."
+their scope management has been effective despite challenges. As he states, "Managing scope
+has been challenging in many ways... at times it has been difficult to let them understand that
+there are limited resources to achieve everything within the desired timeline." A colleague
+confirms he is "constantly on top of any scope Paules and the impact it has on the project."
+Areas for development include presentation confidence and audience targeting. As feedback
+suggests, "Sometimes I think Peter does have the answer but struggles to convey it with
+confidence which has led to a lack of trust from some stakeholders. Perhaps a little more
+preparation of the message will help him to portray their message confidently to establish trust."
+Company Values Appraisal Comment
+Peter consistently demonstrates alignment with CatalystFlow's values, particularly emphasising
+"pragmatic delivery" as critical for the Dynamite project. their approach to balancing quality with
+timeline constraints reflects ttheir pragmatism: "We want to do things the right way but we also
+want to stay on track with the committed deliverables."
+their people-first approach is evident in their leadership style, and a real strength for Peter. A
+colleague notes he is "a great people leader, having the sense of how to interact and deal with
+each individual team member." Peter identifies "the skill set of each individual team member early
+on, giving him a feeling who is capable of what task to solve."
+Integrity is demonstrated through their transparent handling of project challenges and their
+commitment to proper handover: "we will do the required workshops, handover and
+documentation once the project is finalised."
+their expertise sharing is evident in their technical discussions and problem-solving sessions with
+the team, creating opportunities for less vocal team members to contribute and grow.
+Development Opportunities for the year ahead
+Presentation and Communication Effectiveness: Develop more structured approaches to
+stakeholder presentations, focusing on audience-appropriate messaging and conveying technical
+information with greater confidence.
+Strategic Client Relationship Development: Build on experience with challenging stakeholders at
+TNT to develop more formal approaches to client relationship management, particularly with new
+clients.
+Other Comments
+Peter has demonstrated solid performance on the Dynamite project at TNT. their leadership was
+crucial to the project's success, with a colleague stating the project "would not only have not been
+a success but is unlikely to have ever made it to production" without their oversight.
+their ability to balance technical understanding with delivery leadership has been valuable.
+Peter has shown growth in stakeholder management, successfully navigating challenging
+relationships at TNT and turning around initially difficult situations. With continued focus on
+developing their presentation effectiveness and strategic client relationship skills, he will
+strengthen their effectiveness as a Managing Consultant.
+Rating
+3
+
+
+Consultant 2
+Technology/Core Skills Appraisal Comments
+Peer feedback:
+- Tom has worked across two teams since the last review, Customer to Customer and Media and
+Content. While I haven't worked with him directly, by all signs he is smashing out quality work at a
+rapid pace for both.
+- Tom is also one of the stronger code-reviewers for our frontend codebase at Sheppard, both in
+terms of quantity and quality.
+- Demonstrates good expertise in the frontend codebase and has also stretched occasionally to
+service development where the team needs it
+- Great eye for detail. Very low count of bugs related to their work. Thinks highly about having a
+healthy code base.
+- Demonstrates a solid understanding of best practices and applies them effectively to deliver
+high-quality solutions leading to being able to contribute and introduce new methodologies /
+ways of working to benefit the entire team
+- Has a deep ability for complex problem solving and crafting elegant, understandable solutions
+- One of their standout qualities is their proactive attitude in offering support to the team
+whenever needed. As the SME for the feed, he provides valuable technical suggestions for new
+projects related to the feed, which greatly benefits the team.
+It's great to see that you're realising and acting on the value you bring to your team (and Sheppard
+as a whole), especially when it comes to helping the new engineers find their feet on huge
+codebases like Geronimo.
+Your interest in UX shows through the way you proactively identify, raise, and plan to solve
+problems in the frontend code bases - a quality which I think is extremely valuable. Your keen eye
+and sense of ownership displayed shows you are a key contributor here.
+It's great to see that you're an SME in several areas of the Geronimo codebase, I hope to see you
+increase your responsibilities there with things like taking on more code ownership across
+Geronimo, and looking for more ways you can be a leader in the space. Things like more
+knowledge sharing, or finding/building approaches that reduce work for other devs (or make our
+Paules less risky) are good spots to focus.
+As a Software Engineer I'm really happy with how you're going and the quality of your work from
+what I've seen and as reported by your peers. Keep it up!
+Consulting Skills Appraisal Comments
+Peer feedback:
+- Tom consistently produces quality work and is a valuable voice in team discussions.
+Professional, dedicated, and always maintains a positive approach.
+- Tom's reliable, asks questions when there is uncertainty, and clearly works towards the bessolution considering the client's needs
+
+- He has done exceptional work on the feed project, demonstrating excellent attention to detail.
+
+- Keen eye for detail. Thinks not just from a technical perspective, but also from a business and
+customer perspective, which is a rare quality and enables him to bring more to their team than an
+average dev.
+
+- He goes out of their way to help others and has a strong sense of ownership.
+
+- Tom was an integral member of the Sienna team and I always considered him to be one of those
+go-to persons for challenging questions.
+
+Your colleagues respect and trust you, they see you as an SME in The Flow which is a pretty big
+deal due to its complexity.
+
+The positive feedback you've gotten about the way you work from both technical and
+non-technical colleagues shows to me that you're building and maintaining relationships with
+stakeholders which are allowing you to have a good impact in the department.
+
+Your attention to detail (especially from a non-technical perspective) is something you should be
+proud of. Keep thinking from the business and customers perspective, it continues to show that
+you're understanding the business and that you care about the bigger picture of the Paules you're
+making.
+
+Company Values Appraisal Comment
+
+I think you do a great job of representing the Company Values at work. You mentioned specifically
+Sharing Deep Expertise, which I think you have a great example for, but you definitely bring all 4 to
+work!
+
+Development Opportunities for the year ahead
+
+Some opportunities for you to develop throughout the coming year:
+
+- Try to expand your impact outside of your own team and get more involved with discussions
+across the wider technical community at Sheppard. Others can benefit from your insight and you
+can benefit from what you might learn in these discussions. Additionally it will continue to build
+your already great reputation here at Sheppard.
+
+- Take on more code ownership in the frontend codebase. You're a talented reviewer and your
+eagle eyes would be much appreciated when it comes to protecting ourselves from dodgy code to
+potentially complex or important areas of the code. From feedback: "Tom has a keen eye for detail
+and in places where we need an additional gatekeeper, I'd be very confident in him being that
+person."
+
+- Seek opportunities to work with systems you're less familiar with. Stretch yourself into
+back-end and maybe helping to plan future features to continue to round out your value
+
+You're progressing really well and others can see your ability to quickly learn new skills and
+domains. From feedback: "keep up the good work and the learning, the sky is the limit for Tom."
+Other Comments
+
+One great nugget of feedback for you:
+
+"...a manager reached out and said something along the lines of 'if the world was your oyster, what
+mid-level frontend engineer would you pick for their replacement' - Tom was easily at the top of
+my list."
+
+You've got some rave reviewers at Sheppard, you represent CatalystFlow well as a really dependable
+engineer in the Product Delivery space and we're lucky to have you with us. I'm looking forward to
+seeing you progress over the coming year.
+
+Rating
+
+4
+
+
+Consultant 3
+
+Technology/Core Skills Appraisal Comments
+
+Claire has consistently demonstrated herself as a technical expert, serving as a go-to resource for
+code-related queries across multiple projects. their proficiency in Spring Boot, Java, TypeScript,
+Kotlin, Maven, Gradle, and AWS Services has been instrumental in driving technical solutions. their
+ability to quickly grasp and apply new technologies is a significant asset.
+
+Example: At Coldplay ,Claire took the initiative to explore new technologies, successfully executing
+multiple proofs of concept, setting up a single-page web application, and developing a mobile app
+in React Native, a completely new domain for her. She also deployed these applications in the
+client's AWS account.
+
+their achievements at Stars, including the implementation of Adyen 3DS and resolution of
+duplicate payment issues, highlight her ability to deliver critical solutions under pressure. their
+contributions at Coldplay, particularly the migration of Angular projects and the Java upgrade of a
+complex codebase, showcase her ability to handle challenging tasks.
+
+Claire's "get-it-done" attitude allows her to work in quick, iterative increments, producing
+functional proofs of concept. their confidence in her ability to learn and deliver results makes her a
+valuable engineer, regardless of the technology. their peers and clients respect her for her ability
+to quickly understand and solve problems.
+
+She has also demonstrated mentoring capabilities, as seen in her support for another colleague in
+the Magic. their active participation in the server-side guild at CatalystFlow further highlights her
+commitment to knowledge sharing and technical growth.
+
+their peers say: Claire is the kind of dev I'd like to have more of.
+
+Consulting Skills Appraisal Comments
+
+Claire demonstrates strong consulting skills, often exceeding the expectations of her seniority.
+She actively engages in team meetings, provides valuable insights, and advocates for the adoption
+of promising industry developments. their ability to prioritise tasks and deliver high-quality
+products within agreed timelines is commendable.
+
+Example: Claire's ability to work with Pauling scope, as demonstrated during the Coldplay
+discovery phase, and her skill in building trust and relationships quickly, as seen with Hayley at
+Coldplay, are notable strengths. their persistence in overcoming roadblocks, such as the Login &
+GraphQL PoC at Coldplay, further exemplifies her consulting capabilities.
+
+their ability to work effectively with both CatalystFlow and non-CatalystFlow members, exemplified by her work
+with her colleague, shows her adaptability and focus on delivering valuable results.
+
+their commitment to clear documentation ensures effective communication of technical direction
+to both technical and non-technical stakeholders.
+
+Claire's ability to build trust and relationships quickly, and her persistence in the face of
+roadblocks, are particularly strong consulting skills.
+
+their contributions to team discussions and her ability to provide accurate estimates for backlog
+stories are highly valued.
+
+their dedication to thorough code reviews and proactive approach to resolving production bugs
+demonstrate her commitment to quality and reliability.
+
+Company Values Appraisal Comment
+
+Consistently displays all catalystflow values
+
+Development Opportunities for the year ahead
+
+Claire has been pursuing AWS Solution Architect last year, and may benefit from the increased
+breadth of cloud knowledge.
+
+Other
+
+Claire could share her knowledge more frequently, and has leaned into the Server Side Guild in
+that direction. This will help her practice showcasing technical topics to an audience.
+
+Rating
+
+4
+
+
+Consultant 4
+
+Technology/Core Skills Appraisal Comments
+
+Paul has demonstrated solid technical capabilities at the Senior Software Engineer level across
+multiple projects. His technical portfolio spans a diverse range of technologies including AWS,
+Python, TypeScript, and SQL through his work on Banana, Grape, and Apple projects. As Paul
+notes in his self-appraisal, he has "successfully delivered end-to-end solutions and consistently
+met and exceeded expectations across diverse team environments and technologies."
+
+A significant professional achievement this year was obtaining the "Professional-level
+certification of AWS Certified Solutions Architect which is widely recognised as one of the most
+challenging in the field." This certification validates his cloud expertise and demonstrates his
+commitment to professional development.
+
+Paul's technical contributions span multiple projects, including the Moon Landing Zone project at
+Banana where he "designed and delivered a solution that automates the backup of various AWS
+resources using tagging, Lambdas and a centralised eventbridge." This solution was successfully
+deployed across multiple AWS organizations and was "an integral part of their phase 1 cloud
+migration."
+
+At Apple, Paul delivered an "end-to-end solution that automatically streams customer
+conversations to the Qualtrics data analytics platform, generating valuable insights" and has
+"contributed to improving the platform team's secret management process and CI/CD pipeline."
+
+While Paul has demonstrated technical competence across these projects, feedback from a
+colleague suggests an opportunity for growth in "attention to detail particularly on adhering to
+best practice and security." The colleague noted concerns about "handling of production data and
+credentials in non-production environments" that could benefit from greater care and rigor to
+establish stronger technical credibility.
+
+From my perspective with some extra context, the feedback above, and some similar feedback I
+received from the client regarding his Typescript code, can both be improved through a more
+communicative approach with our clients. As such it's more 'consulting' related feedback. Both
+bits of feedback I believe, would have been avoided by asking some questions and double
+checking some items early to ensure his planned approach was aligned with client expectations.
+
+Consulting Skills Appraisal Comments
+
+Paul has shown good consulting capabilities in his role as a Senior Software Engineer. He has
+taken initiative in client-facing activities beyond his core technical responsibilities, working with
+CatalystFlow's General Manager of Fruit on statements of work for two Grape project proposals. As he
+describes, he was responsible for "gathering and analysing requirements, drafting solution
+proposals, calculating and proposing the estimated time, effort and pricing and participating in
+contract and resourcing negotiations." These efforts contributed to securing approval for a 75-day
+AI/ML Data Zone project in early 2025.
+
+At Banana, Paul took on a leadership role as "team lead on the Moon landing zone project, guiding
+fellow CatalystFlowrs and serving as the primary CatalystFlow contact for the AWS consulting team." His ability
+to navigate challenging team dynamics is notable, as he explains: "When I first joined, there was
+noticeable tension between the CatalystFlow and AWS teams due to differing work styles, technical
+visions, restrictions from the client and AWS... As the CatalystFlow tech lead, I acted as a bridge between
+the two teams, fostering collaboration, easing tensions, and ultimately restoring productivity
+across the team."
+
+A colleague corroborates this, noting that Paul "joined the project at a time when things were
+largely siloed, in flux, and unstructured" with clients who "were expecting finished solutions
+where a lot of the questions asked during requirements gathering and solution design the client
+was quite hesitant to commit to an answer." The colleague observed that Paul "weathered those
+conditions quite well, and was able to provide early iterations of documentation and solutions that
+could be picked up by others for finalisation."
+
+At Apple, Paul worked in a complex stakeholder environment, "acting as the bridge between these
+teams" to define scope, provide estimates, and manage customer expectations. He describes
+taking on a "team lead role on the data platform project, overseeing all aspects of its delivery."
+
+An area for development noted by a colleague is how Paul "can build trust and relationships with
+stakeholders." The colleague observed that "he often comes across as uncertain in the point he is
+making. Leading to the client seeking further reassurance from the team." Enhancing his
+confidence and clarity in client communications would strengthen his consulting effectiveness.
+
+Paul is exceeding expectations by leading teams, but needs to focus on his stakeholder
+management and communications to be able to reach the next level of seniority. An example of
+this is above. Another is feedback I received from our client regarding the feeling that Paul was
+being "pushy". In this instance Paul was attempting to meet the deadline, however keeping this
+stakeholder happy was more important than meeting the deadline, as this stakeholder is one who
+holds considerable influence within the organisation.
+
+Company Values Appraisal Comment
+
+Paul consistently demonstrates alignment with CatalystFlow's values in his work. As he states in his
+self-appraisal, "I always keep Company Values in mind when I work and I consistently demonstrate all
+CatalystFlow values."
+For People First, Paul emphasizes that he "always put customers' needs first and communicates
+as often as needed. I understand that we build systems for human needs and do my best to help
+customers build the most valuable things." He believes that "empathy and respect are foundations
+for leadership" and considers these principles when making decisions in leadership roles.
+
+Regarding Sharing Deep Expertise, Paul understands "the importance of knowledge sharing and
+always try my best to spread knowledge around to customers and colleagues." A colleague
+confirms this, noting that Paul demonstrated this value by providing support given the
+"communication silos between CatalystFlow and the client(s) at the time, it was great having someone in
+the same office and development environment to bounce ideas around on some of the required
+solution builds."
+
+Paul embodies Pragmatic Delivery by "always do[ing] my best to find the most efficient solution
+that can deliver maximum business value with limited time and resources." His colleague noted
+that Paul "was realistic about the actual timeframes to deliver the solutions required and was able
+to structure some of the unfinished assigned solutions in a way that they could be iterated on."
+
+For Integrity Above All, Paul believes in "integrity and honesty" and is "always upfront and make
+timely communication when I see opportunities for improvement. I never try to cover up when I
+make mistakes - I use them as valuable lessons for the team."
+
+A colleague summarized that they "can see that Paul does demonstrate CatalystFlow values, even with
+his short time on the project," providing examples of his alignment with all four values through his
+collaborative approach and practical solution delivery.
+
+Development Opportunities for the year ahead
+
+Stakeholder Management and Communication: Work on developing a more collaborative and
+confident and assured communication style when interacting with clients. As noted by a
+colleague, sometimes Paul "comes across as uncertain in the point he is making," which can lead
+clients to seek additional reassurance. Practicing more assertive communication while
+maintaining his collaborative approach would enhance his effectiveness. In addition, checking in
+with stakeholders early, and becoming more aware of the internal relationships and dynamics of
+the organisation will help him ensure he develops a strong relationship with the people who have
+the most influence over the future of CatalystFlow within the organisation.
+
+Other
+
+Paul has demonstrated solid performance as a Senior Software Engineer over the past year, with
+particular strengths in technical versatility and eagerness to take on leadership responsibilities.
+His achievements in obtaining the AWS Solutions Architect Professional certification and
+contributing to successful project outcomes across Banana, Grape, and Apple demonstrate his
+technical capabilities and commitment to growth.
+
+His willingness to step into bridge-building roles between teams and stakeholders shows promise
+for consulting development, though there are opportunities to enhance his communication
+confidence and technical rigor. Paul's consistent alignment with CatalystFlow's values, particularly in
+pragmatic delivery and knowledge sharing, provides a strong foundation for his continued
+development.
+
+The contrast between Paul's self-assessment (which indicates he believes he is "performing
+beyond [his] current seniority level") and the feedback received suggests an opportunity for
+calibration in self-assessment. While Paul has certainly taken on responsibilities that stretch
+beyond typical expectations for his role, there are fundamental areas of stakeholder management
+that would benefit from focused development before considering advancement to the next level.
+
+Rating
+
+3
+
+
+Consultant 5
+
+Technology/Core Skills Appraisal Comments
+
+Andrew has made significant strides in the past year, taking on projects both within and beyond
+CatalystFlow. His successful delivery of the “AWS- Nuke” initiative, collaboration with leaders to achieve
+substantial cost savings for CatalystFlow, and development of a reusable pattern, all while effectively
+communicating his ideas to executive stakeholders, mark a pivotal advancement in his role at
+CatalystFlow, showcasing his ability to operate at a higher level. Andrew's positive attitude toward
+embracing new challenges, exemplified by his work on FinOps at Neighbours and pursuing
+courses and certifications in FinOps, alongside his clear discussions with both executives and
+technologists, strongly indicates that he can lead technically. He adeptly steps into new customer
+environments, grasps the technology landscape, and quickly delivers results.
+
+Overall, Andrew's technological skills have expanded considerably over the last year, positioning
+him as a formidable technology leader within CatalystFlow.
+
+Consulting Skills Appraisal Comments
+
+Consulting Andrew' s consulting skills have always been solid, but this year he has had the
+opportunity to showcase them independently. Collaborating with executive stakeholders and
+engaging with a new customer, he has displayed a knack for anticipating challenges and
+conversing at a high level with confidence and ease. In summary, Andrew has demonstrated a
+greater level of consulting competence than typically expected from an engineer and continues to
+receive constructive feedback from colleagues to enhance his skills further.
+
+Company Values Appraisal Comment
+
+Andrew demonstrates all the Company Values well. Sharing Deep Expertise, Pragmatic Delivery and
+Integrity Above All continuously show up in feedback from other catalystflowrs and client feedback.
+These in particular were called out via 2 kudos nominations and client feedback.
+
+Development Opportunities for the year ahead
+
+Andrew has contributed thought leadership through blogs and developed technology patterns
+that promote cost savings and reuse for customers. Additionally, he is an active participant in the
+CatalystFlow Perth team and broader networks in Adelaide and Hobart. For his development, a key area
+for growth is in building and nurturing executive relationships. Andrew has shown he has the
+capability in this area but needs to intensify his efforts to establish himself as a trusted contact
+beyond direct reporting projects.
+
+Other
+
+Rating
+
+4

@@ -1,0 +1,124 @@
+.edit-cycle-modal { max-width: 660px; }
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── STATUS BADGE (header) ───────────────────────────────────── */
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.status-badge-draft     { background: var(--color-background); color: var(--color-text-muted); }
+.status-badge-scheduled { background: #fef3c7; color: #b45309; }
+.status-badge-active    { background: var(--color-accent-soft); color: var(--color-accent-strong); }
+.status-badge-completed { background: #dbeafe; color: #2563eb; }
+
+/* ── STATUS BANNER ───────────────────────────────────────────── */
+.edit-status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 24px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.banner-scheduled { background: var(--color-accent-soft); color: var(--color-accent-strong); border-bottom: 1px solid var(--color-accent-border); }
+.banner-active    { background: var(--color-accent-soft); color: var(--color-accent-strong); border-bottom: 1px solid var(--color-accent-border); }
+.banner-completed { background: var(--color-accent-soft); color: var(--color-accent-strong); border-bottom: 1px solid var(--color-accent-border); }
+
+/* ── MILESTONE COUNT ─────────────────────────────────────────── */
+.milestone-count {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ── STATE BADGES (on milestone cards) ──────────────────────── */
+.ms-state-row {
+  margin-bottom: 6px;
+}
+
+.ms-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ms-badge-completed { background: var(--color-background); color: var(--color-text-muted); }
+.ms-badge-current   { background: var(--color-accent-soft); color: var(--color-accent-strong); }
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ── LOCKED CARD ─────────────────────────────────────────────── */
+.tl-card-locked {
+  border-color: var(--color-border);
+  background: var(--color-background);
+  opacity: 0.85;
+}
+
+/* ── CURRENT CARD ────────────────────────────────────────────── */
+.tl-card-current {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-soft);
+}
+
+/* ── LOCKED DOT ──────────────────────────────────────────────── */
+.tl-dot-locked {
+  background: #94a3b8 !important;
+  box-shadow: 0 0 0 3px var(--color-background) !important;
+}
+
+/* ── CURRENT DOT ─────────────────────────────────────────────── */
+.tl-dot-current {
+  background: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-soft) !important;
+}
+
+/* ── DISABLED DELETE BUTTON ──────────────────────────────────── */
+.tl-remove-disabled {
+  opacity: 0.3;
+  cursor: not-allowed !important;
+}
+.tl-remove-disabled:hover {
+  background: none !important;
+  color: var(--color-border) !important;
+}
+
+/* ── LIMIT NOTE ──────────────────────────────────────────────── */
+.tl-limit-note {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  margin: 8px 0 0 0;
+  padding: 6px;
+  background: var(--color-background);
+  border-radius: 6px;
+}

@@ -1,0 +1,522 @@
+{
+  "_note": "Each seniority level is incremental. The backend stacks criteria from all junior levels up to the employee's level. inheritsFrom defines that chain.",
+
+  "Software & DevOps Engineering": {
+    "_displayNames": {
+      "Graduate": "Graduate",
+      "Analyst": "Analyst",
+      "Engineer": "Engineer",
+      "Senior Engineer": "Senior Engineer",
+      "Associate Principal": "Associate Principal Engineer",
+      "Principal": "Principal Engineer"
+    },
+    "Graduate": {
+      "inheritsFrom": [],
+      "technology": [
+        "Developing further competence through training, development and experience",
+        "Write production-ready code either by pairing with a peer, or when provided with guidance on the best approach",
+        "Clarify needs via others for instruction & direction whilst also being capable of taking well-defined tasks / subtasks, estimating them with support and completing them",
+        "Create correct and clean artefacts, following project-agreed best practices, and meeting the definition of done",
+        "Know the software development methodologies and work effectively in a team which is applying them"
+      ],
+      "consulting": [
+        "Working cooperatively with others to achieve your team's goals",
+        "Listen actively and ask relevant questions to check understanding after trying to work things out independently",
+        "Provide clear and precise explanations both written and verbally",
+        "Respond well to feedback, demonstrating learning, improvement and growth",
+        "Time management - ability to communicate what has been done, effectively manages own time, dependable and reliable",
+        "Comfortable working on a client site, integrates well into their environment"
+      ]
+    },
+    "Analyst": {
+      "inheritsFrom": ["Graduate"],
+      "technology": [
+        "Develop a deep expertise in a core language and/or technology, and gain awareness of other languages/technologies",
+        "Debug and solve problems in your own code or others code, with support or guidance from colleagues",
+        "Mentor and code review those developers less experienced than you, including recommending approaches to take",
+        "Be the expert in one or more features on your primary project, participate in the design of software components (with guidance) and have a good knowledge of the architecture, existing code, and technologies",
+        "As appropriate, propose new tools (or changes to existing ones) which help you and your colleagues work more efficiently (e.g. automation tools, testing frameworks, collaboration tools)",
+        "Be capable of estimating to complete a well-scoped task for yourself with increasing capability"
+      ],
+      "consulting": [
+        "Communicate with non-technical stakeholders to fully understand project requirements that you are working on",
+        "Prioritise your tasks and know when to seek help after you've had a reasonable go at solving issues",
+        "Focus on business value and technical risk-reduction for your tasks",
+        "Identify problems, understand the effort required to resolve them and work collaboratively towards solving them",
+        "Present to small groups of clients, at a seniority slightly higher than your own, at a level that is understood by the audience",
+        "Build appropriate relationships and contribute towards project needs of broader stakeholders (Business Analysts, Developers, Ops team members, Testers, Project Managers etc)",
+        "Communicate status of your tasks to your manager and other non-technical stakeholders as required",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Engineer": {
+      "inheritsFrom": ["Graduate", "Analyst"],
+      "technology": [
+        "Develop deep expertise in a core set/area of technologies and be able to work effectively in non-core areas with infrequent guidance",
+        "Help others in their coding / debugging / problem solving, and debug complex problems on your own",
+        "Lead demos and technical discussions with both internal and external stakeholders (both technical and non-technical)",
+        "Be the go-to person in your area(s) of the solution",
+        "Influence (or make, when smaller scale) important project technical decisions",
+        "Have a good understanding of overall architecture on your project",
+        "Identify areas where common templates, starter-kits, shared-libraries or approaches could deliver efficiencies and improve quality, and contribute to their development"
+      ],
+      "consulting": [
+        "Build trust with CatalystFlow and client personnel around your work products and areas of expertise",
+        "Help to deliver right outcomes through appropriate relationships with broader stakeholders",
+        "Manage your own time to meet agreed targets, and develop plans and estimates for others taking into account their respective skills",
+        "Fully understand the business cases and functional/non-functional requirements supported by your feature(s) and solution(s)",
+        "Demonstrate awareness of business value by proposing new features or approaches to your client and internal stakeholders",
+        "Help mentor less experienced CatalystFlowrs, and participate in the buddy and graduate mentor programs",
+        "Be involved in identifying and contributing towards opportunities for CatalystFlow, which may include pre-sales and supporting some business development efforts",
+        "Work with non-technical stakeholders to fully understand overall project requirements",
+        "Communicate status of team tasks to your manager and other non-technical stakeholders if required. Structure ideas well in written formats.",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Senior Engineer": {
+      "inheritsFrom": ["Graduate", "Analyst", "Engineer"],
+      "technology": [
+        "Be a respected expert in core technologies, sought after for opinion and guidance, along with broad skills and experience across a variety of other languages and technologies",
+        "Care about the quality of outcomes (codebase, uptime, release frequency, security, test coverage etc) and continually look for ways to improve them",
+        "Have a strong understanding of architecture, how it is delivered and run in production, and the impact that changes may have on it",
+        "Have a sound knowledge of current technology industry trends in your chosen domain",
+        "Lead others in complex problem solving and debugging tasks",
+        "Provide estimates for team's work, even when there is a significant degree of uncertainty around requirements or architecture, and include assumptions and rationale to support the estimates",
+        "Manage scope and scope changes across backlog, including an awareness of the impact of any changes"
+      ],
+      "consulting": [
+        "Deliver clear, well-structured and concise arguments to support your opinions",
+        "Have the confidence to justify opinions and the flexibility to adapt to new ideas",
+        "Present technical concepts in a way that non-technical stakeholders fully understand",
+        "Help the team cope with flexible scope or technical uncertainty",
+        "Persist in the face of roadblocks and dispatch them efficiently, pulling in others when necessary and escalating when required",
+        "Participate in activities to build CatalystFlow such as recruitment, pre-sales, TEL, presentations, Guilds, sharing good practices",
+        "Quickly build trust to enable positive relationships with client stakeholders and partner stakeholders, leading these relationships where appropriate",
+        "Build and nurture relationships inside and outside the direct project and team",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement which could result in new work",
+        "Ensure work is done to completion to meet a business objective, including thinking ahead to predict delivery, testing, implementation and support issues",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Associate Principal": {
+      "inheritsFrom": ["Graduate", "Analyst", "Engineer", "Senior Engineer"],
+      "technology": [
+        "Are able to set up a technical environment that the team can be productive with, in your particular language and technology",
+        "Have sufficiently broad experience to be able to engage with specialists to set up those parts of the environment that are not your speciality",
+        "Be responsible for the quality of the system your team own, set the testing strategy for your team and get buy-in from your team on the testing approach",
+        "Set, review and influence architectural direction for the system your team owns",
+        "Understand all of the external user and technical system interfaces that your team is working with, and clarify/refine these interfaces when necessary",
+        "Be a key decision-maker for important technical decisions",
+        "Drive the process of the team reaching consensus regarding how to solve a particular problem or achieve a particular technical outcome",
+        "Step in and help the team solve technical issues they may not have been able to solve independently",
+        "Provide estimates for your team's work and be accountable for them"
+      ],
+      "consulting": [
+        "Build and nurture relationships across teams, with an understanding of the structure and decision makers, to create influence",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement with scope of the issue, contacts stakeholders and possible approaches/solutions",
+        "Contribute to account growth by providing the Site Lead stakeholder, opportunity, successes, and risk insights for account plans",
+        "Identify promising new industry developments and, when appropriate, lead their adoption within your team",
+        "Present the team's chosen technical approaches to external parties",
+        "Act as an outward-facing advocate for your team's technical needs",
+        "Effectively communicate agreed-upon technical direction within the team",
+        "Communicate external technical constraints to the team",
+        "Be willing and able to adjust the boundaries of your team's system when client objectives change",
+        "Lead the team through change",
+        "Be able to lead both CatalystFlow and non-CatalystFlow team members",
+        "Drive along a team's technical activities towards a business outcome",
+        "Be accountable individually for the decisions you and your team make collectively",
+        "Acts in a dependable and reliable manner for the team and the client"
+      ]
+    },
+    "Principal": {
+      "inheritsFrom": ["Graduate", "Analyst", "Engineer", "Senior Engineer", "Associate Principal"],
+      "technology": [
+        "Have depth and breadth of knowledge across a range of languages/technologies in different paradigms",
+        "Lead others in complex problem solving tasks, teaching them new skills in the process, and be capable of debugging the hairiest problems which your team encounters",
+        "Set, review and influence architectural direction",
+        "Take ownership of complex streams of work, acting as the lead for all stages of the software delivery lifecycle. Shape a solution and provide technical leadership to others.",
+        "Develop a reputation for drama-free releases",
+        "Document your deliverables in a manner that is understandable by and valuable to other developers / architects / support staff",
+        "Distil ideas and concepts into diagrams and written language that is persuasive and accurate"
+      ],
+      "consulting": [
+        "Keep up to date with industry developments and actively learn the latest technologies; ensure this knowledge is applied through Guilds, blogs, courses, POCs, conferences etc.",
+        "Have a deep understanding of related approaches and disciplines such as Agile, DevOps, and Software/Solution Architecture, and be able to communicate that to business oriented stakeholders",
+        "Anticipate issues, communicate these properly to the relevant stakeholders, and make architectural/design decisions to avoid/resolve them",
+        "Scope and shape work appropriately for multiple teams, avoiding monolithic deliverables where applicable",
+        "Build and nurture relationships guided by a solid understanding of the organisation's structure and decision makers inside and outside the direct engagement to create influence",
+        "Provide strong support for pre-sales and sales to existing and new clients",
+        "Build trust and respect with clients at the highest levels (CIO, CTO, GM, Head Of) quickly based on acknowledged expertise in broad areas",
+        "Work within and understand complex commercial relationships with a client or multiple clients, and make decisions or recommendations which are sympathetic to these needs",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement",
+        "Collaborate with the Site Lead to build the account plan/strategy while continually identifying opportunities and threats to current service and future growth",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    }
+  },
+
+  "Business Analysis": {
+    "_displayNames": {
+      "Graduate": "Graduate Level - Business Analyst",
+      "Analyst": "Analyst Level - Business Analyst",
+      "Engineer": "Business Analyst",
+      "Senior Engineer": "Senior Business Analyst",
+      "Associate Principal": "Associate Principal Business Analyst",
+      "Principal": "Principal Business Analyst"
+    },
+    "Graduate": {
+      "inheritsFrom": [],
+      "coreSkills": [
+        "Developing further competence through training, development and experience",
+        "Clarify needs via others for instruction & direction whilst also being capable of documenting requirements and clearly defined user stories",
+        "Create correct and clean artefacts, following project-agreed best practices",
+        "Know the software development methodologies and work effectively in a team which is applying them"
+      ],
+      "consulting": [
+        "Working cooperatively with others to achieve your team's goals",
+        "Listen actively and ask relevant questions to check understanding after trying to work things out independently",
+        "Provide clear and precise explanations both written and verbally",
+        "Respond well to feedback, demonstrating learning, improvement and growth",
+        "Time management - ability to communicate what has been done, manage own time effectively",
+        "Comfortable working on a client site, integrates well into their environment",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Analyst": {
+      "inheritsFrom": ["Graduate"],
+      "coreSkills": [
+        "Develop expertise in a core business area, and gain awareness of technologies",
+        "Elicit requirements and write requirements or user stories independently, with some support or guidance from colleagues",
+        "Possess good analytical skills and awareness of several business analysis techniques and tools",
+        "Basic understanding of Waterfall and Agile delivery methodologies",
+        "Independently lead discussions with business stakeholders to gather requirements, define business scope with some help from colleagues"
+      ],
+      "consulting": [
+        "Communicate with technical and non-technical stakeholders to fully understand project requirements that you are working on",
+        "Prioritise your tasks and know when to seek help after you've had a reasonable go at solving issues",
+        "Focus on business value and ask probing questions",
+        "Identify problems, understand the effort required to resolve them and work collaboratively towards solving them",
+        "Present to small groups of clients, at a seniority slightly higher than your own, at a level that is understood by the audience",
+        "Build appropriate relationships and contribute towards project needs of broader stakeholders (Project Sponsors, Technical Stakeholders, Business Stakeholders)",
+        "Communicate status of your tasks to your manager and other stakeholders as required",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Engineer": {
+      "inheritsFrom": ["Graduate", "Analyst"],
+      "coreSkills": [
+        "Develop expertise in a business domain and be able to work effectively in non-core areas with guidance and support",
+        "Possess basic technical skills and aptitude to learn",
+        "Help others in problem solving, and able to work independently",
+        "Support demos and discussions with both internal and external stakeholders",
+        "Understand business problems, ask probing questions, and determine potential solutions/outcomes",
+        "Be knowledgeable in your area(s) of business domain/solution",
+        "Focus on business value and influence stakeholders in making important project decisions",
+        "Review data and user feedback, ask the WHAT, and translate into potential HOWs",
+        "Good understanding and experience in Waterfall and Agile methodologies"
+      ],
+      "consulting": [
+        "Build trust with CatalystFlow and client personnel around your work products and areas of expertise",
+        "Help to deliver right outcomes through appropriate relationships with broader stakeholders (Business, End Users, UX team, Development Team, Project Managers etc)",
+        "Manage your own time to meet agreed targets, and develop plans and estimates for others taking into account their respective skills",
+        "Fully understand the business need and write functional/non-functional requirements",
+        "Demonstrate awareness of business value by proposing new features or approaches to your client and internal stakeholders",
+        "Help mentor less experienced CatalystFlowrs, and participate in the buddy and graduate mentor programs",
+        "Be involved in identifying and contributing towards opportunities for CatalystFlow, which may include pre-sales and supporting some business development efforts",
+        "Communicate with stakeholders and project team, practise active listening, and build relationships with technical and non-technical stakeholders",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Senior Engineer": {
+      "inheritsFrom": ["Graduate", "Analyst", "Engineer"],
+      "coreSkills": [
+        "Be a subject matter expert in a business domain, sought after for opinion and guidance, along with broad skills and experience across a variety of other business domains",
+        "Practise industry best practices in business analysis techniques",
+        "Solve complex problems, lead process modelling, user needs analysis, and implement process improvements",
+        "Identify opportunities for business and process improvements",
+        "Design and position your product to best deliver value to stakeholders and customers",
+        "Sound knowledge of current business trends, technology updates, and have a deep understanding of business processes in your chosen business domain",
+        "Lead others in complex problem solving and business analysis processes",
+        "Manage scope and scope changes across backlog, including an awareness of the impact of any changes"
+      ],
+      "consulting": [
+        "Deliver clear, well-structured and concise arguments to support your opinions",
+        "Have the confidence to justify opinions and the flexibility to adapt to new ideas",
+        "Present business expectations and technology constraints/limitations in a balanced manner to arrive at business decisions that are technically feasible",
+        "Facilitate a team to consensus on scope, design, and implementation decisions",
+        "Negotiate mutual and effective solutions while maintaining professional relationships",
+        "Persist in the face of roadblocks and dispatch them efficiently, pulling in others when necessary and escalating when required",
+        "Participate in activities to build CatalystFlow such as recruitment, pre-sales, TEL, presentations, Guilds, sharing good practices",
+        "Quickly build trust to enable positive relationships with client stakeholders and partner stakeholders, leading these relationships where appropriate",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement which could result in new work",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Associate Principal": {
+      "inheritsFrom": ["Graduate", "Analyst", "Engineer", "Senior Engineer"],
+      "coreSkills": [
+        "Extensive experience planning and delivering initiatives and playing a lead role in enterprise-wide projects",
+        "Demonstrate sound knowledge of core, support and management business processes within the core business domain",
+        "Implement strategies to improve efficiency",
+        "Ability to embed the philosophy of taking customer value based approaches to design and development",
+        "Build business cases and assess return on investment",
+        "Develop work plans, deliverable timelines, definition of overall approaches, and mobilisation efforts for initiatives",
+        "Recognise structural issues within the organisation, functional interdependencies and cross-silo redundancies",
+        "Strong situational analysis and decision-making abilities"
+      ],
+      "consulting": [
+        "Ability to focus on what creates value for the organisation and to maximise the value of the work to ensure value add to the business",
+        "Foster cooperation and collaboration within team by demonstrating an understanding of contrasting individual styles",
+        "Lead, inspire, motivate and support the wider BA practice",
+        "Drive innovation and empower others",
+        "Assume the role of mentor to others in adopting and implementing industry best practices",
+        "Build and nurture relationships across teams, with an understanding of the structure and decision makers, to create influence",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement with scope of the issue, contacts stakeholders and possible approaches/solutions",
+        "Contribute to account growth by providing the Site Lead stakeholder, opportunity, successes, and risk insights for account plans",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Principal": {
+      "inheritsFrom": ["Graduate", "Analyst", "Engineer", "Senior Engineer", "Associate Principal"],
+      "coreSkills": [
+        "Recognised domain expert and inspire trust with both internal and external stakeholders",
+        "Have depth and breadth of knowledge across a range of business areas",
+        "Provide input on enterprise-wide business and technology planning, decisions, and processes",
+        "Lead others in complex problem solving tasks, and teaching them new skills in the process",
+        "Influence strategies for business-critical solutions",
+        "Take ownership of complex streams of work, acting as the lead, and shape a solution and provide thought leadership to others",
+        "Utilise diplomacy and conflict mitigation techniques, and be proficient at contract negotiation and scope management",
+        "Advise business and stakeholders on current industry trends and help them make informed decisions",
+        "Define and manage product vision, key drivers, and success criteria",
+        "Build and nurture relationships guided by a solid understanding of the organisation's structure and decision makers inside and outside the direct engagement to create influence",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement",
+        "Collaborate with the Site Lead to build the account plan/strategy while continually identifying opportunities and threats to current service and future growth"
+      ],
+      "consulting": [
+        "Keep up to date with industry developments, actively learn and keep abreast of the latest industry trends, determine areas in which projects, teams and clients should invest",
+        "Have a deep understanding of related approaches and disciplines such as Agile, DevOps, and Software/Solution Architecture, and be able to communicate that to business oriented stakeholders",
+        "Build and nurture relationships across teams, with an understanding of the structure and decision makers, to create influence",
+        "Provide strong support for pre-sales and sales to existing and new clients",
+        "Build trust and respect with clients at the highest levels (CIO, CTO, GM, Head Of) quickly based on acknowledged expertise in broad areas",
+        "Possess strategic vision and agility, thought leadership, and develop strategies for business-critical solutions",
+        "Work within and understand complex commercial relationships with a client or multiple clients, and make decisions or recommendations which are sympathetic to these needs",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    }
+  },
+
+  "Quality Assurance": {
+    "_note": "QA criteria in this document begins at Engineer level. Graduate and Analyst levels are not separately defined for QA.",
+    "_displayNames": {
+      "Engineer": "Quality Assurance Engineer",
+      "Senior Engineer": "Senior Quality Assurance Engineer",
+      "Associate Principal": "Associate Principal Quality Assurance Engineer",
+      "Principal": "Principal Quality Assurance Engineer"
+    },
+    "Engineer": {
+      "inheritsFrom": [],
+      "coreSkills": [
+        "Develop deep expertise in various testing types and be able to work effectively in non-core areas with infrequent guidance",
+        "Develop expertise in business domain and be able to effectively provide testing solutions with guidance and support",
+        "Possess basic test automation skills and aptitude to learn",
+        "Help others in problem solving, and able to work independently",
+        "Support demos and discussions with both internal and external stakeholders",
+        "Have a good understanding of overall architecture on your project",
+        "Contribute in building CatalystFlow Testing Solutions and identifying areas where common templates, starter-kits or approaches could deliver efficiencies"
+      ],
+      "consulting": [
+        "Build trust with CatalystFlow and client personnel around your work products and areas of expertise",
+        "Help to deliver right outcomes through appropriate relationships with broader stakeholders (Business Analysts, Developers, Ops team members, Delivery Managers etc)",
+        "Manage your own time to meet agreed targets, and develop plans and estimates for others taking into account their respective skills",
+        "Fully understand the business cases and functional/non-functional requirements to define best-fit test approach and provide test coverage",
+        "Demonstrate awareness of business value by proposing new testing solutions and strategies to your client and internal stakeholders",
+        "Help mentor less experienced CatalystFlowrs, and participate in the buddy and graduate mentor programs",
+        "Communicate with stakeholders and project team, practise active listening, and build relationships with technical and non-technical stakeholders",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Senior Engineer": {
+      "inheritsFrom": ["Engineer"],
+      "coreSkills": [
+        "Be a respected expert in core testing types, sought after for opinion and guidance, along with broad skills and experience across a variety of test automation tools",
+        "Sound knowledge of current trends in testing industry, technology updates, testing tools, and have a deep understanding of business processes in your chosen domain",
+        "Have a good understanding of test management tools and be able to implement test approach",
+        "Establish automated testing solutions by implementing/extending test automation frameworks",
+        "Identify opportunities for QA process improvements and influence stakeholders in implementation of new ideas",
+        "Identify risks and provide mitigation approach",
+        "Manage functional and non-functional testing for the scope of work",
+        "Have a good understanding of architecture, how it is delivered and run in production, and the impact that changes may have"
+      ],
+      "consulting": [
+        "Deliver clear, well-structured and concise arguments to support your opinions",
+        "Have the confidence to justify opinions and the flexibility to adapt to new ideas",
+        "Articulate technical and non-technical concepts in a balanced manner for different type of stakeholders to arrive at decisions",
+        "Coach the team in various QA aspects and help cope with flexible scope",
+        "Participate in activities to build CatalystFlow such as recruitment, pre-sales, TEL, presentations, Guilds, sharing good practices",
+        "Build and nurture relationships inside and outside the direct project and team",
+        "Quickly build trust to enable positive relationships with client stakeholders and partner stakeholders, leading these relationships where appropriate",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement which could result in new work",
+        "Ensure work is done to completion to meet a business objective, including thinking ahead to predict delivery, testing, implementation and support issues",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Associate Principal": {
+      "inheritsFrom": ["Engineer", "Senior Engineer"],
+      "coreSkills": [
+        "Extensive experience in developing test plans and leading the implementation of testing initiatives such as new automation frameworks, testing of new features etc.",
+        "Extensive experience in various test management tools, be able to select the appropriate tools for clients and lead implementation of tools",
+        "Set, review and influence decisions related to test automation and tools your team owns",
+        "Develop deep understanding of the application/solutions that is being tested",
+        "Understand all of the external user and technical system interfaces",
+        "Provide estimates for team's work, even when there is a significant degree of uncertainty around requirements or architecture, and include assumptions and rationale to support the estimates",
+        "Manage scope and scope changes across backlog, including an awareness of the impact of any changes",
+        "Contribute to CatalystFlow blogging platform by writing up articles on testing"
+      ],
+      "consulting": [
+        "Keep up to date with test automation industry developments, actively learn and keep abreast of the latest technologies, determine areas in which projects, teams and clients should invest",
+        "Build collaborative relationships and lead test process improvements and new ideas",
+        "Identify the testing scope i.e. both functional and non-functional and influence the decisions related to scope",
+        "Quickly build trust to enable positive relationships with client stakeholders and partner stakeholders, leading these relationships where appropriate",
+        "Build and nurture relationships across teams, with an understanding of the structure and decision makers, to create influence",
+        "Manage expectations when balancing alternatives against business and technical constraints",
+        "Negotiate an optimum result by ensuring that all key concerns and issues are aired, focusing attention on the stakeholder interest to find common ground",
+        "Lead, inspire, motivate and support the wider QE practice",
+        "Assume the role of mentor to others in adopting and implementing industry best practices",
+        "Extensive experience in waterfall and agile methodologies with the ability to define, tweak and implement test strategies accordingly",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement",
+        "Contribute to account growth by providing the Site Lead stakeholder, opportunity, successes, and risk insights for account plans",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    },
+    "Principal": {
+      "inheritsFrom": ["Engineer", "Senior Engineer", "Associate Principal"],
+      "coreSkills": [
+        "Develop a reputation for being go to person for QA",
+        "Set, review and influence strategic direction for QA",
+        "Have depth and breadth of knowledge across a range of functional and non-functional testing tools and techniques",
+        "Lead others in complex problem solving tasks, teaching them new skills in the process, and be capable of debugging the hairiest problems which your team encounters",
+        "Take ownership of complex streams of work, acting as the lead, and shape a solution and provide thought leadership to others",
+        "Document your deliverables in a manner that is understandable by and valuable to other developers/architects/QA staff",
+        "Distil ideas and concepts into diagrams and written language that are persuasive and accurate",
+        "Be proficient in emerging trends i.e. emerging test automation tools, cloud testing etc",
+        "Review client's QA problem statement, select test automation tools, present and recommend best-fit automation tool for client's requirement. Be able to oversee implementation of test automation framework",
+        "Contribute to CatalystFlow blogging platform by writing up articles on testing"
+      ],
+      "consulting": [
+        "Keep up to date with industry developments, actively learn and keep abreast of the latest technologies, determine areas in which projects, teams and clients should invest",
+        "Have a deep understanding of related approaches and disciplines such as Agile, DevOps, and Software/Solution Architecture, and be able to communicate that to business oriented stakeholders",
+        "Anticipate risks and issues, communicate these properly to the relevant stakeholders, and make architectural/design decisions to avoid/resolve them",
+        "Build and nurture relationships guided by a solid understanding of the organisation's structure and decision makers inside and outside the direct engagement to create influence",
+        "Provide strong support for pre-sales and sales to existing and new clients",
+        "Build trust and respect with clients at the highest levels (CIO, CTO, GM, Head Of) quickly based on acknowledged expertise in broad areas",
+        "Possess strategic vision and agility, thought leadership, and develop QA strategies for business-critical solutions",
+        "Work within and understand complex commercial relationships with a client or multiple clients, and make decisions or recommendations which are sympathetic to these needs",
+        "Identify and raise potential new business opportunities inside and outside the direct engagement",
+        "Contribute to account growth by providing the Site Lead stakeholder, opportunity, successes, and risk insights for account plans",
+        "Acts in a dependable and reliable manner for their team and the client"
+      ]
+    }
+  },
+
+  "Site Lead": {
+    "_note": "Site Lead is a role, not a seniority. A person can be a Site Lead at any technical seniority. These criteria are assessed in addition to their technical seniority criteria.",
+    "consulting": [
+      "Ensure our people are engaged and well looked after, through regular contact with team to build relationships and to understand individual situations",
+      "Work with the team as individuals, to mentor, set goals (project and career) and measure progress towards those goals",
+      "Evaluate team member behaviour against our Values and handle deviations from them either directly with staff or by escalating them as appropriate",
+      "Match leadership style to the different needs of individuals within the team whilst also maintaining a degree of consistency in approach",
+      "Contribute towards evaluation of team skills and inform, or in some cases lead, Performance Assessment for team members",
+      "Communicate changes and relevant information to the team from CatalystFlow, and issues or relevant information regarding the team members to CatalystFlow leadership",
+      "Balance the needs of team members with the needs of CatalystFlow as an organisation, along with client needs"
+    ]
+  },
+
+  "Managing Consultant": {
+    "_note": "Managing Consultant includes all People Lead criteria plus the following.",
+    "technology": [
+      "Be competent in core languages/technologies (but brings in technical expertise when needed) along with broad skills and experience across a variety of engagement situations",
+      "Care about the quality of deliverables and ensure the team continually improves it",
+      "Have a strong understanding of business domain, high level architecture and processes to ensure that the team runs efficiently",
+      "Lead and oversee others in complex problem solving and debugging tasks",
+      "Provide estimates for team's work, even when there is a significant degree of uncertainty around requirements or architecture, and include assumptions and rationale to support the estimates",
+      "Manage scope and scope changes across backlog, including an awareness of the impact of any changes",
+      "Ensures appropriate delivery cadence is in place and executed efficiently",
+      "Ensures delivery is planned and progress communicated clearly to the client and internally to CatalystFlow",
+      "Swiftly removes impediments, closes dependencies, and manages risk so that the team(s) are kept on track with their commitments"
+    ],
+    "consulting": [
+      "Lead and manage the CatalystFlow team on a client site, either directly or via People Leads for larger teams, continuing and improving CatalystFlow's culture, balancing team member needs with client needs and CatalystFlow organisational needs",
+      "Build trust and respect quickly with CatalystFlow staff and key client stakeholders, including those more senior than yourself",
+      "Contribute actively towards managing CatalystFlow's Resourcing activities",
+      "Be capable of having difficult discussions regarding performance or delivery issues, with CatalystFlowrs and/or client stakeholders",
+      "Lead positive relationships between CatalystFlow and a client or clients at senior levels",
+      "Create and execute upon Account Plans for a client or clients, working with an Account Manager",
+      "Handles commercials for a client including SOWs, timesheets, invoicing, etc.",
+      "Diligently update of required information including risks, resourcing requirements, contract dates, etc.",
+      "Help to promote and improve CatalystFlow's positive culture and values",
+      "Lead and manage any Partner relationships and delivery on a client site or sites",
+      "Structure communications clearly and at the appropriate level, particularly at higher management levels. Develop communication skills in others.",
+      "Understand and balance risk vs. commercial return both for CatalystFlow and on behalf of our clients"
+    ]
+  },
+
+  "Principal Consultant": {
+    "_note": "Principal Consultant includes all People Lead and Managing Consultant criteria plus the following.",
+    "technology": [
+      "Ensure that processes are in place to continuously improve the quality of the practice",
+      "Have a sound knowledge of current technology industry trends and how to apply them across clients",
+      "Ensure that the right CatalystFlowrs are involved in client engagements or pre-sales activities to achieve the right outcomes",
+      "Oversee and communicate estimates for teams' work, even when there is a significant degree of uncertainty around requirements or architecture, and include assumptions and rationale to support the estimates",
+      "Oversee the management of scope and scope changes to balance delivery and commercial needs"
+    ],
+    "consulting": [
+      "Drive strategy and monitor CatalystFlow teams across multiple clients, large and small to deliver outcomes",
+      "Lead positive relationships between CatalystFlow and multiple clients at the most senior levels, building credibility and trust over time",
+      "Proven ability to leverage relationships to win work at new clients",
+      "Manage and balance successful delivery against commercial agreements across multiple clients",
+      "Manage and communicate contract risk across multiple sites",
+      "Assist the Managing Consultant(s) to ensure that we have appropriate rates, SOWs and MSAs in place",
+      "Promote excellent practices and process improvements across CatalystFlow, and communication of such in technology communities external to CatalystFlow and clients",
+      "Oversee Account Plan creation and execution across clients, working with Account Manager(s) and Managing Consultants and drive to achieve outcomes",
+      "Support or take responsibility for pre-sales and business development in existing and prospective new clients and deliver tangible outcomes",
+      "Create, lead and manage relationships with senior stakeholders within Partners",
+      "Help to promote and improve CatalystFlow's positive culture and values",
+      "Shape strategy for CatalystFlow with existing and prospective clients",
+      "Understand and balance risk vs. commercial return both for CatalystFlow and on behalf of our clients. Help stakeholders to understand the balance and help to drive to decisions based on this evaluation."
+    ]
+  },
+
+  "Delivery Lead": {
+    "_note": "Delivery Lead is a distinct role with its own criteria set.",
+    "technology": [
+      "Leads and manages the team(s) on a client site to deliver projects for customers - meeting business objectives, including thinking ahead to predict delivery, testing, implementation and support issues",
+      "Has working knowledge of core languages or technologies used on the site",
+      "Ensures that each stage of delivery meets business objectives, including thinking ahead to predict delivery, testing, implementation and support issues",
+      "Has a deep understanding of Agile practices and how to navigate obstacles to ensure projects are delivered on time",
+      "Has a pragmatic delivery mindset knowing the right balance between too much, too little, just enough and correct accordingly",
+      "Looks for ways to optimise work/schedules so that the team is constantly delivering value to the customer",
+      "Swiftly removes impediments, closes dependencies, and manages risk so that the team(s) are kept on track with their commitments",
+      "Ensures goals are achievable and communicated clearly",
+      "Works closely with the Product Owner to ensure priorities are clear, and the backlog is well refined",
+      "Helps the team cope with flexible scope or technical uncertainty",
+      "Helps the team prioritise and focus on the right work at the right time",
+      "Has exceptional time management skills demonstrated through own and team delivery",
+      "Proactively implements, monitors and improves processes as required to improve/maintain the quality of the practice/team"
+    ],
+    "consulting": [
+      "Ensures the team is connected with CatalystFlow (e.g. encouraging Guild participation), and CatalystFlow's culture/values and delivery approaches",
+      "Nurtures, develops and coaches the team, promoting autonomy, through sharing knowledge, good practice, insights and technical guidance",
+      "Has respect from the client as a lead and is engaged with the client leadership team (level appropriate)",
+      "Takes an active role in resourcing and building the client team through participating in the recruitment and consulting with the client where necessary",
+      "Adjusts their leadership style to the different needs of the client, environment and team members",
+      "Through curiosity and building trusting relationships, identifies new client opportunities",
+      "Delivers clear, well-structured and concise arguments to support opinions",
+      "Has the confidence to justify opinions and the flexibility to adapt to new ideas",
+      "Presents technical concepts in a way that non-technical stakeholders fully understand",
+      "Communicates early and transparently when things don't go as planned",
+      "Is practical about meetings/communications and guides meetings to a swift and positive conclusion",
+      "Effectively utilises relationships and networks to move through roadblocks and escalating as required",
+      "Participates in activities to build CatalystFlow including pre-sales and presentations, Guilds, sharing good practices"
+    ]
+  }
+}

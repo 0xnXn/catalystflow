@@ -1,0 +1,11 @@
+version: 0.2
+phases:
+  build:
+    commands:
+    - bash scripts/security-scan.sh
+artifacts:
+  files:
+  - security-reports/*.json
+cache:
+  paths:
+  - /root/.cache/trivy/**/*

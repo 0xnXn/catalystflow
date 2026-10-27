@@ -1,0 +1,858 @@
+# Template to deploy this stack locally
+# KEY DIFFS ARE -> jvm lambda builds || increased timeout 
+# || cognito & s3 is skipped || dynamodb local endpoint || hardcode table names
+# because sam local cannot resolve !Refs
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  CatalystFlow Serverless Infrastructure
+  Dual Lambda architecture: ReviewService + UserService
+  API Gateway REST API with Cognito JWT Authorizer
+
+# what we are supplying to sam deploy command 
+Parameters:
+  FrontendBaseUrl:
+    Type: String
+    Description: HTTPS URL of this account's frontend distribution
+    AllowedPattern: "https://.+"
+  CognitoUserPoolId:
+    Type: String
+    Description: Existing Cognito User Pool ID 
+# setting a default for all the lamdas 
+Globals:
+  Function:
+    Runtime: java21
+    Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+    MemorySize: 3048
+    Timeout: 900 # increased for debugging from 15
+    Environment:
+      Variables:
+        AWS_DEFAULT_REGION: "ap-southeast-2"
+        DISABLE_SIGNAL_HANDLERS: "true"
+        JAVA_TOOL_OPTIONS: "-XX:-UseSharedSpaces -XX:SharedArchiveFile="
+        AWS_ENDPOINT_URL: "http://dynamodb-local:8000"  # points to DynamoDB Local
+
+
+# resources is what we use to define what we need aws to create 
+# always follows the same pattern - name type and props 
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # API Gateway 
+  # ---------------------------------------------------------------------------
+  CatalystFlowApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: CatalystFlow-API
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB Tables
+  # ---------------------------------------------------------------------------
+  ReviewsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_Reviews
+      AttributeDefinitions:
+        - AttributeName: reviewId
+          AttributeType: S
+        - AttributeName: subjectUserId
+          AttributeType: S
+        - AttributeName: authorUserId
+          AttributeType: S
+        - AttributeName: cycleId
+          AttributeType: S
+        - AttributeName: cycleTypeKey   # "{cycleId}#{reviewType}" — GSI sort key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reviewId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: SubjectIndex
+          KeySchema:
+            - AttributeName: subjectUserId
+              KeyType: HASH
+            - AttributeName: cycleTypeKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: AuthorIndex
+          KeySchema:
+            - AttributeName: authorUserId
+              KeyType: HASH
+            - AttributeName: cycleTypeKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: CycleIndex
+          KeySchema:
+            - AttributeName: cycleId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_Users
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  
+  ReviewCyclesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_ReviewCycles
+      AttributeDefinitions:
+        - AttributeName: cycleId
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: startDate
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cycleId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-startDate-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  AiJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_AiJobs
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  # CC-1: Gemini context-cache index for local SAM. Same shape as the prod
+  # table; DeletionPolicy intentionally omitted per the existing local-template
+  # convention (project-context.md flags local-template safety as a separate
+  # Required item — not in scope for CC-1).
+  GeminiContextCacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_GeminiContextCache
+      AttributeDefinitions:
+        - AttributeName: cacheKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cacheKey
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  NotificationJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_NotificationJobs
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  NotificationEventsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: catalystflow-notification-events-dlq-local
+
+  NotificationEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: catalystflow-notification-events-local
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationEventsDLQ.Arn
+        maxReceiveCount: 3
+
+  NotificationJobsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: catalystflow-notification-jobs-dlq-local
+
+  NotificationJobsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: catalystflow-notification-jobs-local
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationJobsDLQ.Arn
+        maxReceiveCount: 3
+
+  ReviewTemplatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CatalystFlow_ReviewTemplates
+      AttributeDefinitions:
+        - AttributeName: templateId
+          AttributeType: S
+        - AttributeName: reviewType
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: templateName
+          AttributeType: S
+      KeySchema:
+        - AttributeName: templateId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Query templates by reviewType, sorted by creation date
+        - IndexName: reviewType-createdAt-index
+          KeySchema:
+            - AttributeName: reviewType
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Fast uniqueness check by template name
+        - IndexName: templateName-index
+          KeySchema:
+            - AttributeName: templateName
+              KeyType: HASH
+          Projection:
+            ProjectionType: KEYS_ONLY
+      BillingMode: PAY_PER_REQUEST
+
+  # ---------------------------------------------------------------------------
+  # Cognito Groups
+  # NOTE: The ADMIN group already exists in your pool — do NOT add it here.
+  #       Only the USER group is created by this stack.
+  # ---------------------------------------------------------------------------
+  CognitoUserGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref CognitoUserPoolId
+      GroupName: USER
+      Description: Standard authenticated user group
+
+  # ---------------------------------------------------------------------------
+  # Lambda: Review Service
+  # Handles all /reviews/* routes
+  # ---------------------------------------------------------------------------
+  ReviewServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CatalystFlow-ReviewService
+      CodeUri: review-service/target/function.zip
+      # CodeUri: review-service/target/review-service-1.0-SNAPSHOT-runner.jar
+      Environment:
+        Variables:
+          REVIEWS_TABLE_NAME: CatalystFlow_Reviews # hardcode because sam local cannot resolve refs
+          REVIEW_CYCLES_TABLE_NAME: CatalystFlow_ReviewCycles
+          REVIEW_TEMPLATES_TABLE_NAME: CatalystFlow_ReviewTemplates
+          USERS_TABLE_NAME: CatalystFlow_Users
+          NOTIFICATION_EVENTS_QUEUE_URL: !Ref NotificationEventsQueue
+
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBCrudPolicy:
+            TableName: CatalystFlow_ReviewCycles
+        - DynamoDBCrudPolicy:
+            TableName: CatalystFlow_ReviewTemplates
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_Users
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationEventsQueue.QueueName
+      Events:
+        # events are basically where we initiate or trigger the Lamda here is where we write the API 
+        ReviewHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi #we call in the API GATEWAY REFERENCE and we conntect it with lamda 
+            Path: /reviews/health
+            Method: GET
+            Auth:
+              Authorizer: NONE #no auth is req by default we beed auth 
+
+        ListReviews:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews
+            Method: GET
+        CreateReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews
+            Method: POST
+        GetReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/{reviewId}
+            Method: GET
+        UpdateReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/{reviewId}
+            Method: PUT
+        DeleteReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/{reviewId}
+            Method: DELETE
+        GetMyReviews:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/my-review
+            Method: GET
+        GetReviewsAssignedToMe:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/assigned-to-me
+            Method: GET
+        GetReviewsByCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/cycle/{cycleId}
+            Method: GET
+        GetManagerGate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/manager-gate
+            Method: GET
+        PublishBundle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/bundle/publish
+            Method: POST
+        ReviewCycleHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ListReviewCycles:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles
+            Method: GET
+        CreateReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles
+            Method: POST
+        GetReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}
+            Method: GET
+        UpdateReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}
+            Method: PUT
+        DeleteReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}
+            Method: DELETE
+        PublishReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/publish
+            Method: POST
+        ActivateReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/activate
+            Method: POST
+        CompleteReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/complete
+            Method: POST
+        CreatePeer360Assignments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/peer360-assignments
+            Method: POST
+        ListPeer360Assignments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/peer360-assignments
+            Method: GET
+        DeletePeer360Assignment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/peer360-assignments/{reviewId}
+            Method: DELETE
+
+        # ── Template routes ──────────────────────────────────────
+        TemplateHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        CheckTemplateName:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/check-name
+            Method: GET
+        ListTemplates:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates
+            Method: GET
+        CreateTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates
+            Method: POST
+        GetTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/{templateId}
+            Method: GET
+        UpdateTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/{templateId}
+            Method: PUT
+        DeleteTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/{templateId}
+            Method: DELETE
+
+  # ---------------------------------------------------------------------------
+  # Lambda: AI Service (split from review-service in Epic 5 G1)
+  # ---------------------------------------------------------------------------
+  AiServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CatalystFlow-AiService
+      CodeUri: ai-service/target/function.zip
+      Environment:
+        Variables:
+          AI_JOBS_TABLE_NAME: CatalystFlow_AiJobs
+          REVIEWS_TABLE_NAME: CatalystFlow_Reviews
+          REVIEW_TEMPLATES_TABLE_NAME: CatalystFlow_ReviewTemplates
+          GEMINI_API_KEY: "your-api-key-here"
+          GEMINI_MODEL: "gemini-2.5-flash"
+          AI_REVIEW_MOCK: "false"
+          COACHING_MOCK: "false"
+          # CC-1: Gemini context-cache index (CC-2's GeminiCacheService reads/writes)
+          GEMINI_CACHE_TABLE_NAME: CatalystFlow_GeminiContextCache
+          # CC-4a / CC-4b: per-task cache enablement (default OFF for local sam too).
+          # CC-4b's GOLDEN + DIGEST flags are scaffolding — today's prompts are
+          # below the countTokens preflight threshold so flipping them ON is a
+          # no-op until the prompts grow.
+          GEMINI_CACHE_ENABLED_QUESTION_SUGGEST: "false"
+          GEMINI_CACHE_ENABLED_GOLDEN: "false"
+          GEMINI_CACHE_ENABLED_DIGEST: "false"
+          # CC-4c: ANALYZE + INSIGHTS cache flags (default OFF for local sam too).
+          # Unlike GOLDEN/DIGEST these have prefixes large enough to activate
+          # real caching when flipped ON.
+          GEMINI_CACHE_ENABLED_ANALYZE: "false"
+          GEMINI_CACHE_ENABLED_INSIGHTS: "false"
+          # CC-5: EMF metric Stage dimension — "local" so sam-local emissions
+          # are visually distinguishable from dev / prod traffic.
+          CATALYSTFLOW_STAGE: "local"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: CatalystFlow_AiJobs
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_Reviews
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_ReviewTemplates
+        # CC-1: cache index Get/Put/Delete.
+        - DynamoDBCrudPolicy:
+            TableName: CatalystFlow_GeminiContextCache
+      Events:
+        AiReviewDisciplines:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/disciplines
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        AiReviewAnalyze:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/analyze
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        AiReviewAnalyzeStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/analyze/{jobId}/status
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        AiReviewInsights:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/insights
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        AiReviewInsightsStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/insights/{jobId}/status
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ManagerReviewGoldenPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/reviews/{reviewId}/golden
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        ManagerReviewGoldenGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/reviews/{reviewId}/golden
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ManagerReviewQuestionSuggest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/reviews/{reviewId}/question-suggest
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        ManagerPeer360Digest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/cycles/{cycleId}/subjects/{subjectUserId}/peer360-digest
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        ManagerJobsStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/jobs/{jobId}/status
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        # CC-6: admin cache invalidation knob. Same RBAC contract as prod
+        # (isAdmin() gate inside the handler); Auth: NONE here matches every
+        # other local endpoint since sam-local has no Cognito wired up.
+        CacheList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/cache
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        CacheDelete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/cache/{cacheKey}
+            Method: DELETE
+            Auth:
+              Authorizer: NONE
+
+  # ---------------------------------------------------------------------------
+  # Lambda: Notification Service
+  # Owns manual reminder and notification status HTTP APIs. SQS intent and
+  # delivery processing live in NotificationWorkerFunction because Quarkus REST
+  # Lambda and custom SQS RequestHandler packaging are kept separate like AI.
+  # ---------------------------------------------------------------------------
+  NotificationServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CatalystFlow-NotificationService
+      CodeUri: notification-service/target/function.zip
+      Environment:
+        Variables:
+          NOTIFICATION_JOBS_TABLE_NAME: CatalystFlow_NotificationJobs
+          NOTIFICATION_JOBS_QUEUE_URL: !Ref NotificationJobsQueue
+          REVIEWS_TABLE_NAME: CatalystFlow_Reviews
+          REVIEW_CYCLES_TABLE_NAME: CatalystFlow_ReviewCycles
+          USERS_TABLE_NAME: CatalystFlow_Users
+          NOTIFICATION_START_REMINDER_OFFSETS_DAYS: "7,0"
+          NOTIFICATION_END_REMINDER_OFFSETS_DAYS: "14,7,3,1,0"
+          NOTIFICATION_APP_BASE_URL: "http://localhost:4200"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: CatalystFlow_NotificationJobs
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_Reviews
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_ReviewCycles
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_Users
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationJobsQueue.QueueName
+      Events:
+        ManualReminder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /notifications/reminders/manual
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        NotificationJobStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /notifications/jobs/{jobId}/status
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  # ---------------------------------------------------------------------------
+  # Lambda: Notification Worker
+  # Consumes both intent messages (JSON) and delivery messages (jobId strings).
+  # Intent messages create deterministic NotificationJobs; delivery messages
+  # send SES email and update those jobs.
+  # ---------------------------------------------------------------------------
+  NotificationWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CatalystFlow-NotificationWorker
+      CodeUri: notification-worker/target/function.zip
+      Environment:
+        Variables:
+          NOTIFICATION_JOBS_TABLE_NAME: CatalystFlow_NotificationJobs
+          NOTIFICATION_JOBS_QUEUE_URL: !Ref NotificationJobsQueue
+          NOTIFICATION_EVENTS_QUEUE_URL: !Ref NotificationEventsQueue
+          REVIEWS_TABLE_NAME: CatalystFlow_Reviews
+          REVIEW_CYCLES_TABLE_NAME: CatalystFlow_ReviewCycles
+          USERS_TABLE_NAME: CatalystFlow_Users
+          NOTIFICATION_APP_BASE_URL: "http://localhost:4200"
+          NOTIFICATION_FROM_EMAIL: "no-reply@catalystflow.local"
+          NOTIFICATION_MAX_ATTEMPTS: "3"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: CatalystFlow_NotificationJobs
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_Reviews
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_ReviewCycles
+        - DynamoDBReadPolicy:
+            TableName: CatalystFlow_Users
+        - SQSPollerPolicy:
+            QueueName: !GetAtt NotificationEventsQueue.QueueName
+        - SQSPollerPolicy:
+            QueueName: !GetAtt NotificationJobsQueue.QueueName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationJobsQueue.QueueName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
+      Events:
+        NotificationEvents:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt NotificationEventsQueue.Arn
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+        NotificationJobs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt NotificationJobsQueue.Arn
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  # ---------------------------------------------------------------------------
+  # Lambda: User Service
+  # Handles all /users/* routes — manages users in Cognito + DynamoDB
+  # ---------------------------------------------------------------------------
+  UserServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CatalystFlow-UserService
+      CodeUri: user-service/target/function.zip
+      # CodeUri: user-service/target/user-service-1.0-SNAPSHOT-runner.jar
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          AUTH_DISABLED: "true"
+      Policies:
+        - DynamoDBCrudPolicy:
+            # TableName: !Ref UsersTable
+            TableName: CatalystFlow_Users # hardcode because sam local cannot resolve refs
+        # Cognito admin permissions for user management there is no sam macrolike (DynamoDBCrudPolicy) so we use statement 
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminDeleteUser
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminRemoveUserFromGroup
+                - cognito-idp:AdminListGroupsForUser
+                - cognito-idp:ListUsers
+              Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+      Events:
+        # Public health check — no auth required
+        UserHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+        # All other user routes — Cognito Authorizer (default)
+        ListUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users
+            Method: GET
+        CreateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users
+            Method: POST
+        GetUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}
+            Method: GET
+        UpdateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}
+            Method: PUT
+        GetManagerTeam:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}/team
+            Method: GET
+        GetUserManager:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}/manager
+            Method: GET
+
+  # ---------------------------------------------------------------------------
+  # S3 Frontend Hosting (unchanged from original)
+  # ---------------------------------------------------------------------------
+  FrontendWebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: catalystflow-frontend-live-v2
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendWebsiteBucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource: !Sub "${FrontendWebsiteBucket.Arn}/*"
+            Principal: "*"
+
+Outputs:
+  # Single base URL used by the frontend — inject via CATALYSTFLOW_API_URL_PLACEHOLDER
+  BackendApiUrl:
+    Description: "API Gateway base URL for frontend injection"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/test"
+
+  ReviewServiceUrl:
+    Description: "Review Service endpoints base"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/test/reviews"
+
+  UserServiceUrl:
+    Description: "User Service endpoints base"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/test/users"

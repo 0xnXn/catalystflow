@@ -1,0 +1,63 @@
+.prev-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px;
+}
+.prev-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-primary); }
+.prev-sub   { margin: 2px 0 0; font-size: 11px; color: #94a3b8; }
+.prev-count {
+  font-size: 11px; font-weight: 600; color: var(--color-text-muted);
+  background: var(--color-background); padding: 3px 10px; border-radius: 20px;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+.prev-empty {
+  padding: 24px; text-align: center;
+  font-size: 13px; color: #94a3b8;
+  border: 1.5px dashed var(--color-border); border-radius: 10px;
+}
+
+.prev-card {
+  background: #fafafa; border: 1px solid var(--color-border);
+  border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+}
+.prev-card-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--color-background); background: white;
+}
+.prev-card-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--color-primary); }
+.prev-card-sub   { margin: 0; font-size: 12px; color: var(--color-text-muted); }
+
+.prev-form { padding: 0 18px 16px; }
+
+.prev-question { padding: 14px 0; border-bottom: 1px solid var(--color-background); }
+.prev-question:last-child { border-bottom: none; }
+
+.prev-q-label {
+  font-size: 13px; font-weight: 600; color: var(--color-primary);
+  margin-bottom: 8px; display: flex; gap: 5px; align-items: baseline;
+}
+.prev-q-num   { color: var(--color-accent-strong); font-weight: 700; flex-shrink: 0; }
+.prev-req-star { color: #ef4444; font-weight: 700; flex-shrink: 0; }
+
+.prev-q-field formly-form { display: block; }
+
+.prev-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+
+.prev-btn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: white; color: var(--color-text-muted); border: 1px solid var(--color-border);
+  padding: 8px 16px; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;
+}
+.prev-btn-back:hover { background: var(--color-background); }
+
+.prev-btn-save {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--color-primary); color: white; border: none;
+  padding: 9px 20px; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;
+}
+.prev-btn-save:hover { background: var(--color-primary); }
+.prev-btn-save:disabled { opacity: 0.45; cursor: not-allowed; }

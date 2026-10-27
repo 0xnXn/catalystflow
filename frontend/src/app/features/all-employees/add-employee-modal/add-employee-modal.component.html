@@ -1,0 +1,297 @@
+<div class="modal-overlay">
+  <div class="modal-content wizard-modal add-employee-modal">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div>
+        <h3>Add New Employee</h3>
+        <p class="wizard-step-label">Step {{ addStep }} of 2</p>
+      </div>
+      <button class="modal-close" type="button" (click)="close()">✕</button>
+    </div>
+
+    <!-- Stepper -->
+    <div class="wizard-stepper">
+      <div class="wizard-step" [class.active]="addStep === 1" [class.complete]="addStep > 1">
+        <div class="step-circle">
+          <svg *ngIf="addStep > 1" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <span *ngIf="addStep <= 1">1</span>
+        </div>
+        <span class="step-label">Employee Details</span>
+      </div>
+      <div class="step-connector" [class.complete]="addStep > 1"></div>
+      <div class="wizard-step" [class.active]="addStep === 2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Reporting Structure</span>
+      </div>
+    </div>
+
+    <form #empForm="ngForm" (ngSubmit)="onSubmit(empForm)">
+      <div class="modal-body">
+
+        <!-- ── STEP 1: Basic Info ── -->
+        <div *ngIf="addStep === 1">
+          <div class="wizard-section-header">
+            <h4 class="wizard-section-title">Basic Information</h4>
+            <p class="wizard-section-sub">Enter the employee's personal and professional details</p>
+          </div>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" name="firstName" required minlength="2" maxlength="50"
+                pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*"
+                [(ngModel)]="newEmployee.firstName" #firstName="ngModel"
+                (input)="sanitizeNameField($event, newEmployee, 'firstName')"
+                [class.invalid]="firstName.invalid && firstName.touched"
+                placeholder="e.g. Jane">
+              <div class="field-errors" *ngIf="firstName.touched">
+                <span class="error-msg" *ngIf="firstName.errors?.['required']">First name is required.</span>
+                <span class="error-msg" *ngIf="firstName.errors?.['minlength']">At least 2 characters.</span>
+                <span class="error-msg" *ngIf="firstName.errors?.['pattern']">Only letters, spaces, hyphens, apostrophes and periods.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" name="lastName" required minlength="2" maxlength="50"
+                pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*"
+                [(ngModel)]="newEmployee.lastName" #lastName="ngModel"
+                (input)="sanitizeNameField($event, newEmployee, 'lastName')"
+                [class.invalid]="lastName.invalid && lastName.touched"
+                placeholder="e.g. Smith">
+              <div class="field-errors" *ngIf="lastName.touched">
+                <span class="error-msg" *ngIf="lastName.errors?.['required']">Last name is required.</span>
+                <span class="error-msg" *ngIf="lastName.errors?.['minlength']">At least 2 characters.</span>
+                <span class="error-msg" *ngIf="lastName.errors?.['pattern']">Only letters, spaces, hyphens, apostrophes and periods.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" name="email" required email
+                [(ngModel)]="newEmployee.email" #addEmail="ngModel"
+                (ngModelChange)="onEmailInput()"
+                [class.invalid]="(addEmail.invalid || emailExistsError) && addEmail.touched"
+                placeholder="e.g. jane.smith@company.com">
+              <div class="field-errors" *ngIf="addEmail.touched">
+                <span class="error-msg" *ngIf="addEmail.errors?.['required']">Email is required.</span>
+                <span class="error-msg" *ngIf="addEmail.errors?.['email']">Enter a valid email address.</span>
+                <span class="error-msg" *ngIf="emailExistsError && !addEmail.errors">This email is already registered.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Role Type</label>
+              <select name="employeeType" required
+                [(ngModel)]="newEmployee.employeeType" #addEmpType="ngModel"
+                [class.invalid]="addEmpType.invalid && addEmpType.touched">
+                <option value="">Select Role Type</option>
+                <option value="Manager">Manager</option>
+                <option value="Employee">Employee</option>
+              </select>
+              <div class="field-errors" *ngIf="addEmpType.touched">
+                <span class="error-msg" *ngIf="addEmpType.errors?.['required']">Role type is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Position</label>
+              <input type="text" name="role" required maxlength="50"
+                [(ngModel)]="newEmployee.role" #addPosition="ngModel"
+                [class.invalid]="addPosition.invalid && addPosition.touched"
+                placeholder="e.g. Frontend Developer">
+              <div class="field-errors" *ngIf="addPosition.touched">
+                <span class="error-msg" *ngIf="addPosition.errors?.['required']">Position is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Discipline</label>
+              <select name="discipline" required
+                [(ngModel)]="newEmployee.discipline" #addDiscipline="ngModel"
+                (ngModelChange)="onDisciplineChange()"
+                [class.invalid]="addDiscipline.invalid && addDiscipline.touched">
+                <option value="">Select Discipline</option>
+                <option *ngFor="let discipline of disciplines" [value]="discipline.discipline">
+                  {{ discipline.discipline }}
+                </option>
+              </select>
+              <div class="field-errors" *ngIf="addDiscipline.touched">
+                <span class="error-msg" *ngIf="addDiscipline.errors?.['required']">Discipline is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Seniority</label>
+              <select name="seniority" required
+                [(ngModel)]="newEmployee.seniority" #addSeniority="ngModel"
+                [disabled]="!newEmployee.discipline"
+                [class.invalid]="addSeniority.invalid && addSeniority.touched">
+                <option value="">Select Seniority</option>
+                <option *ngFor="let level of seniorityLevels" [value]="level.key">
+                  {{ level.displayName }}
+                </option>
+              </select>
+              <div class="field-errors" *ngIf="addSeniority.touched">
+                <span class="error-msg" *ngIf="addSeniority.errors?.['required']">Seniority is required.</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Hire Date</label>
+              <input type="date" name="hireDate"
+                [(ngModel)]="newEmployee.hireDate"
+                [max]="today" readonly
+                (click)="$any($event.target).removeAttribute('readonly')"
+                (blur)="$any($event.target).setAttribute('readonly', '')"
+                (keydown)="preventDateTyping($event)">
+              <p class="field-hint">Use the date picker. Future dates are disabled.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── STEP 2: Reporting Structure ── -->
+        <div *ngIf="addStep === 2">
+
+        <!-- Reports To -->
+        <div class="wizard-section">
+          <h4 class="wizard-section-title">Reports To</h4>
+
+          <!-- Show chip only when reportsTo is a real selected manager and the dropdown is closed -->
+          <div *ngIf="newEmployee.reportsTo && !addReportsToOpen && isValidReportsTo" class="chip-list">
+            <div class="manager-chip">
+              <span>{{ newEmployee.reportsTo }}</span>
+              <button type="button" (click)="clearAddReportsTo(); onAddReportsToFocus()">✕</button>
+            </div>
+          </div>
+
+          <!-- Keep input visible while searching or when the typed value is not a valid selected manager -->
+          <div *ngIf="addReportsToOpen || !newEmployee.reportsTo || !isValidReportsTo" class="autocomplete-wrapper search-input-wrapper">
+            <svg class="search-icon-inner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.3-4.3"></path>
+            </svg>
+
+            <input type="text" name="reportsTo" [(ngModel)]="newEmployee.reportsTo"
+              placeholder="Search manager by name..."
+              (input)="onAddReportsToInput()"
+              (focus)="onAddReportsToFocus()"
+              (blur)="onAddReportsToBlur()"
+              (keydown)="onAddReportsToKeyDown($event)"
+              autocomplete="off">
+
+            <div class="autocomplete-dropdown" *ngIf="addReportsToOpen && addReportsToMatches.length > 0">
+              <div class="autocomplete-item"
+                *ngFor="let mgr of addReportsToMatches; let i = index"
+                [class.highlighted]="i === addReportsToHighlight"
+                (mousedown)="selectAddReportsTo(mgr)">
+                <div class="member-search-item">
+                  <span [innerHTML]="highlightMatch(mgr.name, newEmployee.reportsTo)"></span>
+                  <span class="member-search-sub">{{ mgr.role }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="autocomplete-dropdown" *ngIf="addReportsToOpen && newEmployee.reportsTo && addReportsToMatches.length === 0">
+              <div class="autocomplete-empty">No managers found</div>
+            </div>
+          </div>
+
+          <p class="field-hint">Only Admins and Managers are listed. Optional.</p>
+
+          <span class="error-msg" *ngIf="newEmployee.reportsTo && newEmployee.reportsTo === (newEmployee.firstName + ' ' + newEmployee.lastName).trim()">
+            An employee cannot report to themselves.
+          </span>
+        </div>
+
+          <!-- Manages (Manager only) -->
+          <div class="wizard-section" *ngIf="newEmployee.employeeType === 'Manager'">
+            <h4 class="wizard-section-title">Manages</h4>
+            <div class="autocomplete-wrapper search-input-wrapper">
+              <svg class="search-icon-inner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input type="text" [(ngModel)]="addMemberSearch" name="addMemberSearch"
+                placeholder="Search employee name..."
+                (input)="onAddMemberInput()"
+                (focus)="onAddMemberFocus()"
+                (blur)="onAddMemberBlur()"
+                (keydown)="onAddMemberKeyDown($event)"
+                autocomplete="off">
+              <button *ngIf="addMemberSearch" type="button" class="autocomplete-clear" (click)="addMemberSearch = ''; addMemberMatches = []">✕</button>
+              <div class="autocomplete-dropdown" *ngIf="addMemberOpen && addMemberMatches.length > 0">
+                <div class="autocomplete-item"
+                  *ngFor="let emp of addMemberMatches; let i = index"
+                  [class.highlighted]="i === addMemberHighlight"
+                  (mousedown)="selectAddMember(emp)">
+                  <div class="member-search-item">
+                    <span [innerHTML]="highlightMatch(emp.name, addMemberSearch)"></span>
+                    <span class="member-search-sub">{{ emp.role }}{{ emp.reportingToId ? ' • Reports to ' + emp.reportsTo : '' }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="autocomplete-dropdown" *ngIf="addMemberOpen && addMemberSearch && addMemberMatches.length === 0">
+                <div class="autocomplete-empty">No employees found</div>
+              </div>
+            </div>
+            <p class="field-hint">Choose employees who will report to this manager.</p>
+            <div class="chip-list mt-12" *ngIf="newEmployee.teamMembers.length > 0">
+              <div class="member-chip" *ngFor="let m of newEmployee.teamMembers">
+                <span>{{ m.name }}</span>
+                <button type="button" (click)="removeNewTeamMember(m)">✕</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <ng-container *ngIf="addStep === 1">
+          <button type="button" class="btn-cancel" (click)="close()">Cancel</button>
+          <button type="button" class="btn-submit btn-arrow-right" (click)="nextAddStep(empForm)">
+            Next: Reporting Structure
+            <svg class="btn-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </ng-container>
+        <ng-container *ngIf="addStep === 2">
+          <button type="button" class="btn-back btn-arrow-left" (click)="addStep = 1">
+            <svg class="btn-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            Previous
+          </button>
+          <button type="submit" class="btn-cancel">Skip & Add</button>
+          <button type="submit" class="btn-submit">Add Employee</button>
+        </ng-container>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- UNLINK CONFIRM POPUP -->
+<div class="modal-overlay confirm-overlay" *ngIf="unlinkConfirmOpen">
+  <div class="confirm-modal">
+    <div class="confirm-icon-wrap update">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 17H7A5 5 0 0 1 7 7"></path>
+        <path d="M15 7h2a5 5 0 0 1 4 8"></path>
+        <line x1="8" y1="12" x2="12" y2="12"></line>
+        <line x1="2" y1="2" x2="22" y2="22"></line>
+      </svg>
+    </div>
+    <h3 class="confirm-title">Already linked to another manager</h3>
+    <p class="confirm-sub">
+      <strong>{{ unlinkConfirmEmployee?.name }}</strong> currently reports to
+      <strong>{{ unlinkConfirmEmployee?.reportsTo }}</strong>.
+      Unlink them and add to this team?
+    </p>
+    <div class="confirm-actions">
+      <button class="btn-cancel" (click)="cancelUnlink()">Cancel</button>
+      <button class="btn-confirm update" (click)="confirmUnlink()">Yes, Unlink & Add</button>
+    </div>
+  </div>
+</div>

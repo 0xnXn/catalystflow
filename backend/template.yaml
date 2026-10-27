@@ -1,0 +1,1562 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  CatalystFlow Serverless Infrastructure
+  Dual Lambda architecture: ReviewService + UserService
+  API Gateway REST API with Cognito JWT Authorizer
+
+# what we are supplying to sam deploy command 
+Parameters:
+  FrontendBaseUrl:
+    Type: String
+    Description: HTTPS URL of this account's frontend distribution
+    AllowedPattern: "https://.+"
+  CognitoUserPoolId:
+    Type: String
+    Description: Existing Cognito User Pool ID
+  LambdaRuntime:
+    Type: String
+    Default: provided.al2023
+    AllowedValues: [provided.al2023, java21] 
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, prod]
+    Description: Deployment Environment
+  DevCloudFrontDistributionArn:
+    Type: String
+    Description: CloudFront distribution ID for dev frontend
+  ProdCloudFrontDistributionArn:
+    Type: String
+    Description: CloudFront distribution ID for prod frontend
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+    Description: Gemini API key; empty while assistance is disabled
+    Default: ""
+  AuthDisabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: >
+      Local-dev escape hatch: when "true", user-service ClaimsContext skips JWT
+      validation and treats every caller as ADMIN+MANAGER. NEVER enable in prod —
+      the Rules section below blocks the deploy if Environment=prod and this is true.
+  NotificationFromEmail:
+    Type: String
+    Description: Verified SES sender; unused while notifications are disabled
+    Default: "notifications@example.invalid"
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+
+# Hard guard: refuse to deploy auth-disabled to prod. CloudFormation evaluates
+# Rules before any resources are touched, so a misconfigured stack update fails
+# fast with a clear message instead of silently shipping an unauthenticated API.
+Rules:
+  AuthDisabledNotInProd:
+    RuleCondition: !Equals [!Ref Environment, "prod"]
+    Assertions:
+      - Assert: !Equals [!Ref AuthDisabled, "false"]
+        AssertDescription: >
+          AUTH_DISABLED must be "false" when deploying to prod.
+          Refusing to deploy an unauthenticated API to a prod environment.
+    
+# setting a default for all the lamdas 
+Globals:
+  Function:
+    Runtime: !Ref LambdaRuntime
+    Handler: io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest
+    MemorySize: 1024
+    Environment:
+      Variables:
+        DISABLE_SIGNAL_HANDLERS: "true"
+
+
+# resources is what we use to define what we need aws to create 
+# always follows the same pattern - name type and props 
+Resources:
+
+  # ---------------------------------------------------------------------------
+  # API Gateway 
+  # ---------------------------------------------------------------------------
+  CatalystFlowApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !If [IsProd, "CatalystFlow-API", "CatalystFlow-API-dev"]
+      StageName: !Ref Environment
+      Auth:
+        ResourcePolicy:
+          CustomStatements:
+            - Effect: Allow
+              Principal: '*'
+              Action: execute-api:Invoke
+              Resource: execute-api:/*
+            - Effect: Deny
+              Principal: '*'
+              Action: execute-api:Invoke
+              Resource:
+                - execute-api:/*/*/ai-review/analyze*
+                - execute-api:/*/*/ai-review/insights*
+                - execute-api:/*/*/ai-review/manager/*
+                - execute-api:/*/*/ai-review/cache*
+                - execute-api:/*/*/notifications/*
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            # Validates the JWT from the Authorization header against this User Pool , !sub is used to substitute ${} with the value
+            UserPoolArn: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  # ---------------------------------------------------------------------------
+  # Gateway Responses
+  # API Gateway strips CORS headers from its own error responses (401, 403).
+  # Without these, the browser sees a CORS failure instead of the actual error,
+  # causing "Failed to fetch" in Swagger UI and the Angular frontend.
+  # ---------------------------------------------------------------------------
+  GatewayResponseUnauthorized:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref CatalystFlowApi
+      ResponseType: UNAUTHORIZED
+      StatusCode: "401"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+      ResponseTemplates:
+        application/json: |
+          {
+            "error": {
+              "code": "UNAUTHORIZED",
+              "message": "Authorization token is missing or invalid."
+            }
+          }
+
+  GatewayResponseAccessDenied:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref CatalystFlowApi
+      ResponseType: ACCESS_DENIED
+      StatusCode: "403"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+      ResponseTemplates:
+        application/json: |
+          {
+            "error": {
+              "code": "FORBIDDEN",
+              "message": "You do not have permission to perform this action."
+            }
+          }
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB Tables
+  # ---------------------------------------------------------------------------
+  ReviewsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_Reviews", "CatalystFlow_Reviews_dev"]
+      AttributeDefinitions:
+        - AttributeName: reviewId
+          AttributeType: S
+        - AttributeName: subjectUserId
+          AttributeType: S
+        - AttributeName: authorUserId
+          AttributeType: S
+        - AttributeName: cycleId
+          AttributeType: S
+        - AttributeName: cycleTypeKey   # "{cycleId}#{reviewType}" — GSI sort key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reviewId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: SubjectIndex
+          KeySchema:
+            - AttributeName: subjectUserId
+              KeyType: HASH
+            - AttributeName: cycleTypeKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: AuthorIndex
+          KeySchema:
+            - AttributeName: authorUserId
+              KeyType: HASH
+            - AttributeName: cycleTypeKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: CycleIndex
+          KeySchema:
+            - AttributeName: cycleId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_Users", "CatalystFlow_Users_dev"]
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ReviewCyclesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_ReviewCycles", "CatalystFlow_ReviewCycles_dev"]
+      AttributeDefinitions:
+        - AttributeName: cycleId
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: startDate
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cycleId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-startDate-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  AiJobsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_AiJobs", "CatalystFlow_AiJobs_dev"]
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+        # Peer-360 digest resolve-by-(subject,cycle). Sparse GSI keys — written
+        # only by AiJobRepository.createForDigest (PEER_360_DIGEST jobs).
+        - AttributeName: digestKey
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: N
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        # Resolve the latest COMPLETED digest for a (subject, cycle) without a
+        # review-stored pointer. Sparse (only digest rows carry digestKey) → tiny
+        # on PAY_PER_REQUEST. INCLUDE status so the resolve query filters
+        # COMPLETED without a second read.
+        - IndexName: Peer360DigestIndex
+          KeySchema:
+            - AttributeName: digestKey
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - status
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  NotificationJobsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_NotificationJobs", "CatalystFlow_NotificationJobs_dev"]
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  # ── G2: AI worker queue ──────────────────────────────────────────────────────
+  # The API Lambda enqueues a job (jobId-only body); the worker Lambda consumes
+  # the queue and runs Gemini. After maxReceiveCount=3 failed processing attempts
+  # a message moves to AiJobsDLQ and a CloudWatch alarm pages the on-call.
+  #
+  # Visibility timeout = 6× worker Lambda timeout (60s × 6 = 360s) per AWS guidance —
+  # avoids duplicate processing on slow Gemini calls.
+  # MessageRetentionPeriod 86400s (1 day) — if no worker has picked up a job within
+  # a day, the request is stale (the user has long since closed the tab).
+  AiJobsDLQ:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !If [IsProd, "catalystflow-ai-jobs-dlq", "catalystflow-ai-jobs-dlq-dev"]
+      MessageRetentionPeriod: 1209600   # 14 days (max) — operators need time to investigate
+
+  AiJobsQueue:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !If [IsProd, "catalystflow-ai-jobs", "catalystflow-ai-jobs-dev"]
+      # 2026-05-20 (ConcurrentAIExecution): lowered 3240 -> 810 (1.5× worker
+      # Timeout=540s). The previous 6× was a "very safe" default that pre-dates
+      # tryClaim — double-processing is now blocked at the data layer
+      # (AiJobRepository.tryClaim is a DDB conditional update; the loser drops
+      # the message without burning Gemini quota). 1.5× keeps a comfortable
+      # buffer over the worker's hard 540s timeout while cutting:
+      #   - worker-crash recovery: 54 min -> 13.5 min
+      #   - worst-case time-to-DLQ:  162 min -> 40.5 min
+      # 429-specific deferred-retry uses ChangeMessageVisibility to override
+      # this default with the Gemini Retry-After value (typically 30-60s).
+      VisibilityTimeout: 810           # 1.5× worker timeout (worker Timeout = 540s)
+      MessageRetentionPeriod: 86400     # 1 day
+      # 2026-05-27 (latency push): short polling. With long polling at 5s, the
+      # first message after an idle window still waited up to 5s for an active
+      # poller's receive call to return. Setting this to 0 makes Lambda's
+      # event-source mapping use short polling — each ReceiveMessage returns
+      # immediately, and AWS's poller loops continuously. Trade-off: ~5M extra
+      # SQS receive API calls/day (~$2/month) for sub-second PENDING dwell on
+      # the interactive ANALYZE flow. Pollers stay continuously active so they
+      # don't scale down on quiet queues either — a side benefit.
+      ReceiveMessageWaitTimeSeconds: 0
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt AiJobsDLQ.Arn
+        maxReceiveCount: 3
+
+  # G2 step 5: page operators when a message reaches the DLQ. A single message in
+  # the DLQ means a job nobody could process in 3 attempts — almost always either
+  # a Gemini quota exhaustion, a malformed request that bypassed validation, or a
+  # bug in the worker. Threshold=1 so the first failure alerts.
+  #
+  # AlarmActions intentionally left empty — wire to an SNS topic + on-call rotation
+  # in a follow-up. Until then the alarm still transitions to ALARM state and is
+  # visible in the CloudWatch console / dashboards.
+  AiJobsDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !If [IsProd, "CatalystFlow-AiJobsDLQ-NonEmpty", "CatalystFlow-AiJobsDLQ-NonEmpty-dev"]
+      AlarmDescription: "AI worker dead-letter queue has at least one unprocessed job"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Statistic: Maximum
+      Period: 300                       # 5min granularity matches SQS metric publish rate
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt AiJobsDLQ.QueueName
+
+  # ── CC-5 AC-11.3: cache hit-rate watchdog ────────────────────────────────────
+  # Plan §D5: a Gemini context cache is only economical when hit-rate beats the
+  # break-even (cache storage cost / per-call saving). Threshold 0.3 — below
+  # that we should re-evaluate TTL or disable the task's cache flag.
+  #
+  # Why Metric Math (not raw Average): the metric is emitted on EVERY Gemini
+  # call, with CacheHit=0 / Cacheable=0 on non-cacheable calls (no per-task
+  # cache flag set). A raw Average(CacheHit) across all calls would always
+  # be near-zero in early rollout — non-cacheable traffic drowns out the
+  # cacheable subset. SUM(CacheHit) / SUM(Cacheable) measures ONLY the
+  # cacheable calls' hit ratio, which is the right break-even denominator.
+  #
+  # IF wrapper handles zero-division: when no cacheable calls happened in the
+  # window, return 1 (treat as healthy) so an idle service doesn't false-page.
+  # Combined with TreatMissingData: notBreaching, this means the alarm only
+  # fires when there IS cacheable traffic AND its hit rate is genuinely low.
+  #
+  # Dimension: stage only — matches the stage-only metric definition that
+  # GeminiClient.emitCacheMetric emits alongside the per-task one. Org-wide
+  # signal per stage; per-task slicing lives on the dashboard.
+  #
+  # AlarmActions empty — same pattern as the AiJobsDLQAlarm above. Wire to
+  # SNS + on-call when the broader alarm-to-pager rollout lands.
+  CacheHitRateLowAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !If [IsProd, "CatalystFlow-Ai-CacheHitRate-Low", "CatalystFlow-Ai-CacheHitRate-Low-dev"]
+      AlarmDescription: "Gemini cache hit-rate < 0.3 over 1h (cacheable calls only) — review TTL or disable per-task flag"
+      EvaluationPeriods: 1
+      Threshold: 0.3
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: cacheHits
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: CatalystFlow/AI
+              MetricName: CacheHit
+              Dimensions:
+                - Name: stage
+                  Value: !Ref Environment
+            Period: 3600
+            Stat: Sum
+        - Id: cacheable
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: CatalystFlow/AI
+              MetricName: Cacheable
+              Dimensions:
+                - Name: stage
+                  Value: !Ref Environment
+            Period: 3600
+            Stat: Sum
+        - Id: hitRate
+          # IF(cacheable > 0, hits/cacheable, 1) — zero-cacheable means "no
+          # cacheable traffic", which is healthy by definition. Without the
+          # guard, an idle hour would divide-by-zero (CW: NaN) and the alarm
+          # would go INSUFFICIENT_DATA repeatedly.
+          Expression: "IF(cacheable > 0, cacheHits / cacheable, 1)"
+          Label: "Cache hit ratio (cacheable calls only)"
+          ReturnData: true
+
+  # ── CC-1: Gemini context-cache index ─────────────────────────────────────────
+  # Maps a content-hashed cacheKey (taskType + promptVersion + sha256(prompt)
+  # + discipline + seniority) to a Gemini cachedContents/<id> resource name.
+  # Lookup-or-create flow lives in GeminiCacheService (CC-2):
+  #
+  #   1. GetItem(cacheKey)
+  #   2. If hit AND expiresAt > now+60s → reuse cacheName, send to Gemini
+  #      as {"cachedContent": "<cacheName>"} which prepends the cached
+  #      prefix without paying for those input tokens again.
+  #   3. If miss/expired → POST /v1beta/cachedContents to create, PutItem
+  #      the new (cacheKey, cacheName, expiresAt) row.
+  #
+  # Why DDB and not Caffeine: Lambda invocations are stateless across cold
+  # starts. A fresh cold start would otherwise re-create the same Gemini
+  # cache → double-billing on cache storage. DDB lookup is ~5 ms; Gemini
+  # cache creation is ~500 ms — well worth the trip.
+  #
+  # expiresAt is a TTL attribute so DDB sweeps expired rows automatically.
+  # The value tracks Gemini's own TTL (set per task type in GeminiCacheService);
+  # CC-6 admin invalidation endpoints can also DeleteItem manually.
+  GeminiContextCacheTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_GeminiContextCache", "CatalystFlow_GeminiContextCache_dev"]
+      AttributeDefinitions:
+        - AttributeName: cacheKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cacheKey
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  # ── Notification intent + delivery queues ───────────────────────────────────
+  # Review-service publishes lightweight business intents here instead of
+  # invoking notification-service directly. The notification worker resolves
+  # intents into deterministic NotificationJobs, then enqueues per-email delivery
+  # jobIds on NotificationJobsQueue.
+  NotificationEventsDLQ:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !If [IsProd, "catalystflow-notification-events-dlq", "catalystflow-notification-events-dlq-dev"]
+      MessageRetentionPeriod: 1209600
+
+  NotificationEventsQueue:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !If [IsProd, "catalystflow-notification-events", "catalystflow-notification-events-dev"]
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 86400
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationEventsDLQ.Arn
+        maxReceiveCount: 3
+
+  NotificationJobsDLQ:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !If [IsProd, "catalystflow-notification-jobs-dlq", "catalystflow-notification-jobs-dlq-dev"]
+      MessageRetentionPeriod: 1209600
+
+  NotificationJobsQueue:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !If [IsProd, "catalystflow-notification-jobs", "catalystflow-notification-jobs-dev"]
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 86400
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationJobsDLQ.Arn
+        maxReceiveCount: 3
+
+  NotificationEventsDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !If [IsProd, "CatalystFlow-NotificationEventsDLQ-NonEmpty", "CatalystFlow-NotificationEventsDLQ-NonEmpty-dev"]
+      AlarmDescription: "Notification intent dead-letter queue has at least one unprocessed intent"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NotificationEventsDLQ.QueueName
+
+  NotificationJobsDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !If [IsProd, "CatalystFlow-NotificationJobsDLQ-NonEmpty", "CatalystFlow-NotificationJobsDLQ-NonEmpty-dev"]
+      AlarmDescription: "Notification delivery dead-letter queue has at least one unprocessed job"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NotificationJobsDLQ.QueueName
+
+  ReviewTemplatesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsProd, "CatalystFlow_ReviewTemplates", "CatalystFlow_ReviewTemplates_dev"]
+      AttributeDefinitions:
+        - AttributeName: templateId
+          AttributeType: S
+        - AttributeName: reviewType
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: templateName
+          AttributeType: S
+      KeySchema:
+        - AttributeName: templateId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: reviewType-createdAt-index
+          KeySchema:
+            - AttributeName: reviewType
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: templateName-index
+          KeySchema:
+            - AttributeName: templateName
+              KeyType: HASH
+          Projection:
+            ProjectionType: KEYS_ONLY
+      BillingMode: PAY_PER_REQUEST
+
+  # ---------------------------------------------------------------------------
+  # Cognito Groups — all 3 managed by this stack (prod only).
+  # Both stacks share the same Cognito pool — only prod owns group creation.
+  #
+  # ADMIN:    Imported from manually-created group (DeletionPolicy: RetainExceptOnCreate protects
+  #           existing users — never delete this group via CF).
+  # MANAGER:  Delete manually from Cognito console before first deploy.
+  # EMPLOYEE: CF renames the old USER group automatically.
+  # ---------------------------------------------------------------------------
+  CognitoAdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Condition: IsProd
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      UserPoolId: !Ref CognitoUserPoolId
+      GroupName: ADMIN
+      Description: Full administrative access
+
+  CognitoManagerGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Condition: IsProd
+    Properties:
+      UserPoolId: !Ref CognitoUserPoolId
+      GroupName: MANAGER
+      Description: Manager group — elevated access to direct reports
+
+  CognitoEmployeeGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Condition: IsProd
+    Properties:
+      UserPoolId: !Ref CognitoUserPoolId
+      GroupName: EMPLOYEE
+      Description: Standard authenticated employee group
+
+
+  # ---------------------------------------------------------------------------
+  # Lambda: Review Service
+  # Handles all /reviews/* routes
+  # ---------------------------------------------------------------------------
+  ReviewServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, "CatalystFlow-ReviewService", "CatalystFlow-ReviewService-dev"]
+      CodeUri: review-service/target/function.zip
+      Timeout: 29
+      Environment:
+        Variables:
+          REVIEWS_TABLE_NAME: !Ref ReviewsTable
+          REVIEW_CYCLES_TABLE_NAME: !Ref ReviewCyclesTable
+          REVIEW_TEMPLATES_TABLE_NAME: !Ref ReviewTemplatesTable
+          USERS_TABLE_NAME: !Ref UsersTable
+          NOTIFICATION_EVENTS_QUEUE_URL: !Ref NotificationEventsQueue
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReviewCyclesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReviewTemplatesTable
+        # Read-only on UsersTable — required for peer-360 assignment validation
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationEventsQueue.QueueName
+      Events:
+        # events are basically where we initiate or trigger the Lamda here is where we write the API 
+        ReviewHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi #we call in the API GATEWAY REFERENCE and we conntect it with lamda 
+            Path: /reviews/health
+            Method: GET
+            Auth:
+              Authorizer: NONE #no auth is req by default we beed auth 
+
+        ListReviews:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews
+            Method: GET
+        CreateReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews
+            Method: POST
+        GetReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/{reviewId}
+            Method: GET
+        UpdateReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/{reviewId}
+            Method: PUT
+        DeleteReview:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/{reviewId}
+            Method: DELETE
+        GetMyReviews:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/my-review
+            Method: GET
+        GetReviewsAssignedToMe:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/assigned-to-me
+            Method: GET
+        GetReviewsByCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/cycle/{cycleId}
+            Method: GET
+        GetManagerGate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/manager-gate
+            Method: GET
+        PublishReviewBundle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /reviews/bundle/publish
+            Method: POST
+        ReviewCycleHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ListReviewCycles:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles
+            Method: GET
+        CreateReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles
+            Method: POST
+        GetReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}
+            Method: GET
+        UpdateReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}
+            Method: PUT
+        DeleteReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}
+            Method: DELETE
+        PublishReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/publish
+            Method: POST
+        ActivateReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/activate
+            Method: POST
+        CompleteReviewCycle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/complete
+            Method: POST
+
+        # ── Peer 360 assignment routes ───────────────────────────
+        CreatePeer360Assignments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/peer360-assignments
+            Method: POST
+        ListPeer360Assignments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/peer360-assignments
+            Method: GET
+        DeletePeer360Assignment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /cycles/{cycleId}/peer360-assignments/{reviewId}
+            Method: DELETE
+
+        # ── Template routes ──────────────────────────────────────
+        TemplateHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        CheckTemplateName:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/check-name
+            Method: GET
+        ListTemplates:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates
+            Method: GET
+        CreateTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates
+            Method: POST
+        GetTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/{templateId}
+            Method: GET
+        UpdateTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/{templateId}
+            Method: PUT
+        DeleteTemplate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /templates/{templateId}
+            Method: DELETE
+
+  # ---------------------------------------------------------------------------
+  # Lambda: AI Service
+  # Handles all /ai-review/* routes — split from review-service in Epic 5 G1.
+  # Sync execution today (still bound by API Gateway 29s timeout).
+  # G2 (deferred) replaces API-Gateway integration with SQS-triggered worker.
+  # ---------------------------------------------------------------------------
+  AiServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, "CatalystFlow-AiService", "CatalystFlow-AiService-dev"]
+      CodeUri: ai-service/target/function.zip
+      Timeout: 29
+      Environment:
+        Variables:
+          AI_JOBS_TABLE_NAME: !Ref AiJobsTable
+          # G2 step 3: API now enqueues jobs for AiWorkerFunction to process
+          # asynchronously. GEMINI_API_KEY stays for the in-process fallback
+          # path (used only if AI_JOBS_QUEUE_URL is empty — never in deployed
+          # environments).
+          AI_JOBS_QUEUE_URL: !Ref AiJobsQueue
+          GEMINI_API_KEY: !Ref GeminiApiKey
+          # Global Gemini model fallback. ModelResolver reads the per-task vars
+          # below first; if a per-task var is unset it falls through to this;
+          # if even GEMINI_MODEL is unset, application.properties supplies a
+          # literal "gemini-2.5-flash" default. Behavior is byte-identical to
+          # the pre-resolver world when only this var is set.
+          GEMINI_MODEL: "gemini-2.5-flash"
+          # Per-task Gemini model selection (Phase 2 — flipped 2026-05-27
+          # after dev gate verified 20/20 ANALYZE calls succeeded on
+          # gemini-3.1-flash-lite with 0 SchemaInvalidException, cachedContents
+          # API confirmed working, thinkingBudget accepted). CacheRequest.model
+          # is part of the cacheKey hash, so each flipped task invalidates its
+          # DDB cache rows on the next call (~1h TTL, intentional).
+          #
+          # GOLDEN runs on gemini-3.5-flash rather than gemini-2.5-pro: 3.x
+          # Pro is still preview-only (not for prod), and 3.5-flash is the
+          # newest GA mid-tier model. Quality vs 2.5-pro is the open
+          # question — watch SchemaInvalidException rate + manager feedback.
+          GEMINI_MODEL_ANALYZE: "gemini-3.1-flash-lite"
+          # INSIGHTS reverted to gemini-2.5-flash (2026-06-02): 3.5-flash's STREAMING
+          # endpoint is overloaded and aborts mid-stream with a 503, which surfaced as
+          # terminal MALFORMED (blank self-review Golden Mirror). 2.5-flash streams
+          # reliably; the mid-stream-503 handling added to GeminiClient.callStreaming
+          # is the durable, model-agnostic fix. INSIGHTS, GOLDEN and DIGEST all
+          # STREAM (GeminiClient.callStreaming), so all three are reverted to
+          # 2.5-flash (2026-06-02) to avoid the overload-driven mid-stream 503.
+          # QUESTION_SUGGEST moved to 3.1-flash-lite (2026-06-06): non-streaming
+          # call() path (no mid-stream 503 risk), faster + cheaper than 3.5-flash,
+          # which showed ~37s latency spikes. Fallback below stays 2.5-flash.
+          GEMINI_MODEL_INSIGHTS: "gemini-2.5-flash"
+          GEMINI_MODEL_GOLDEN: "gemini-2.5-flash"
+          GEMINI_MODEL_QUESTION_SUGGEST: "gemini-3.1-flash-lite"
+          GEMINI_MODEL_DIGEST: "gemini-2.5-flash"
+          # SPEC-503: per-task FALLBACK model, re-run on an SQS redelivery after a
+          # transient upstream 5xx. Uniformly gemini-2.5-flash (older GA model on a
+          # separate, higher-headroom pool — the overload escape). Keep in lockstep
+          # with the AiWorkerFunction block below.
+          GEMINI_MODEL_ANALYZE_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_INSIGHTS_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_GOLDEN_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_QUESTION_SUGGEST_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_DIGEST_FALLBACK: "gemini-2.5-flash"
+          AI_REVIEW_MOCK: "false"
+          # Manager guidance endpoints read reviews and templates to build review context
+          REVIEWS_TABLE_NAME: !Ref ReviewsTable
+          REVIEW_TEMPLATES_TABLE_NAME: !Ref ReviewTemplatesTable
+          # CC-1: Gemini context-cache index. GeminiCacheService reads/writes
+          # this table when resolving a cacheKey to a Gemini cachedContents/<id>.
+          GEMINI_CACHE_TABLE_NAME: !Ref GeminiContextCacheTable
+          # CC-4a: per-task cache-enable flag. 2026-05-27: previously gated by
+          # !If [IsProd, "false", "true"] to keep prod uncached during rollout;
+          # flipped to "true" uniformly after dev showed the cache path works.
+          # Each flag can still be rolled back via env-var override (no code
+          # redeploy) if a single task type regresses.
+          GEMINI_CACHE_ENABLED_QUESTION_SUGGEST: "true"
+          # CC-4b: MANAGER_GOLDEN caches the system prompt only (no
+          # discipline/seniority split; corpus is per-job). Today's
+          # GOLDEN_REVIEW_PROMPT (~700 tokens) is below the 1500-token
+          # preflight threshold so flipping this ON is currently a no-op —
+          # countTokens skips cache create, GeminiClient falls through to
+          # uncached. Wiring is in place so the cache lights up automatically
+          # if the prompt grows past the threshold.
+          GEMINI_CACHE_ENABLED_GOLDEN: "true"
+          # CC-4b: PEER_360_DIGEST mirrors GOLDEN — system prompt only,
+          # ~300 tokens, same no-op-today caveat.
+          GEMINI_CACHE_ENABLED_DIGEST: "true"
+          # CC-4c: ANALYZE + INSIGHTS — per-(discipline, seniority) prefix
+          # (criteria + style + task instructions). Several thousand tokens
+          # each, well above the 1500-token preflight threshold, so flipping
+          # these flags ON activates real caching (unlike GOLDEN/DIGEST which
+          # stay below threshold). §D5 TTLs: ANALYZE 1h, INSIGHTS 30 min.
+          GEMINI_CACHE_ENABLED_ANALYZE: "true"
+          GEMINI_CACHE_ENABLED_INSIGHTS: "true"
+          # CC-5 (AC-11.2): tag the CloudWatch EMF metric's Stage dimension
+          # so the CatalystFlow-Ai-CacheHitRate-Low alarm can be filtered per
+          # environment in dashboards.
+          CATALYSTFLOW_STAGE: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AiJobsTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt AiJobsQueue.QueueName
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewTemplatesTable
+        # CC-1: Get/Put/Delete on the cache index. CrudPolicy grants the full
+        # set; CC-2's GeminiCacheService uses GetItem + PutItem; CC-6 admin
+        # endpoints add DeleteItem for manual cache eviction.
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GeminiContextCacheTable
+      Events:
+        AiReviewDisciplines:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/disciplines
+            Method: GET
+        AiReviewAnalyze:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/analyze
+            Method: POST
+        AiReviewAnalyzeStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/analyze/{jobId}/status
+            Method: GET
+        AiReviewInsights:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/insights
+            Method: POST
+        AiReviewInsightsStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/insights/{jobId}/status
+            Method: GET
+        ManagerReviewGoldenPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/reviews/{reviewId}/golden
+            Method: POST
+        ManagerReviewQuestionSuggest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/reviews/{reviewId}/question-suggest
+            Method: POST
+        # Polling endpoint shared by every manager-side async flow (analyze /
+        # golden / question-suggest / peer360-digest). Without this, the
+        # frontend's pollUntilDone hits API Gateway and gets 403; UI hangs
+        # until its 5-minute timeout.
+        ManagerJobsStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/jobs/{jobId}/status
+            Method: GET
+        # ADR-2 peer-360 digest enqueue.
+        ManagerPeer360Digest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/cycles/{cycleId}/subjects/{subjectUserId}/peer360-digest
+            Method: POST
+        # Option A: resolve the latest COMPLETED peer-360 digest by (subject, cycle)
+        # so the UI reuses it on refresh. EXPLICIT route required — this API has no
+        # {proxy+}, so without its own event API Gateway has no resource for the path
+        # and the browser's CORS preflight 403s (surfacing as a 504 via the ngsw
+        # service worker). The OPTIONS/CORS method is auto-added by the API Cors config.
+        ManagerPeer360DigestLatest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/manager/cycles/{cycleId}/subjects/{subjectUserId}/peer360-digest/latest
+            Method: GET
+        # CC-6: admin cache invalidation knob. Both endpoints are gated by
+        # isAdmin() in AiReviewResource — manager and employee get 403.
+        # Per plan §6 decision 2: shipped prod-enabled from day one (no
+        # Environment=dev conditional); admin RBAC is the only gate.
+        CacheList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/cache
+            Method: GET
+        CacheDelete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /ai-review/cache/{cacheKey}
+            Method: DELETE
+
+  # ---------------------------------------------------------------------------
+  # Lambda: AI Worker  (G2 step 2)
+  # Same JAR as AiServiceFunction but invoked with QUARKUS_LAMBDA_HANDLER=aiWorker
+  # so Quarkus dispatches to AiWorkerHandler instead of the JAX-RS REST handler.
+  #
+  # Inert until step 3: AiServiceFunction.startAnalysis() still runs Gemini in
+  # process. No SQS messages are produced yet, so this Lambda's event source has
+  # nothing to consume.
+  #
+  # Timeout 60s (worker can exceed the 29s API Gateway ceiling — that's the whole
+  # point of the split). Reserved concurrency caps Gemini quota burn during
+  # bursty traffic.
+  # ---------------------------------------------------------------------------
+  AiWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, "CatalystFlow-AiWorker", "CatalystFlow-AiWorker-dev"]
+      CodeUri: ai-worker/target/function.zip
+      # 540s: AiReviewService / ManagerGuidanceService.callGemini use a 500s
+      # HTTP timeout + a 1s backoff retry on fast-failing transient errors.
+      # Worst-case wall time is one 500s timeout (no retry on timeout) or a
+      # ~1s fail-fast + ~500s retry — both fit inside 540s with a margin for
+      # DDB writes and cold-start overhead. Was 60s; bumped 2026-05-17 after
+      # job b4508ab5… hit the previous 25s HTTP cap on a normal INSIGHTS load.
+      Timeout: 540
+      MemorySize: 1024
+      # 2026-05-20 (ConcurrentAIExecution): raised from 5 to 25 to lift the cycle-close
+      # queue-drain time. Combined with BatchSize=10 below, peak in-flight Gemini calls
+      # = 25 * 10 = 250. If Gemini quota tier returns 429s, dial back to 10-15 OR add
+      # 429-aware retry in AiReviewService.callGemini (currently retries 5xx only).
+      ReservedConcurrentExecutions: 0
+      Environment:
+        Variables:
+          AI_JOBS_TABLE_NAME: !Ref AiJobsTable
+          AI_JOBS_QUEUE_URL: !Ref AiJobsQueue
+          GEMINI_API_KEY: !Ref GeminiApiKey
+          GEMINI_MODEL: "gemini-2.5-flash"
+          # Per-task models — must mirror the API block above. Worker + API
+          # share the ModelResolver bean (via ai-service classpath import in
+          # ai-worker/application.properties), so divergent values here would
+          # break the cacheKey-stability invariant. Keep in lockstep.
+          GEMINI_MODEL_ANALYZE: "gemini-3.1-flash-lite"
+          # INSIGHTS/GOLDEN/DIGEST reverted to gemini-2.5-flash (2026-06-02) — all
+          # three stream; see API block above. QUESTION_SUGGEST moved to 3.1-flash-lite.
+          GEMINI_MODEL_INSIGHTS: "gemini-2.5-flash"
+          GEMINI_MODEL_GOLDEN: "gemini-2.5-flash"
+          GEMINI_MODEL_QUESTION_SUGGEST: "gemini-3.1-flash-lite"
+          GEMINI_MODEL_DIGEST: "gemini-2.5-flash"
+          # SPEC-503: per-task FALLBACK model (mirror of the API block above) —
+          # re-run on an SQS redelivery after a transient 5xx. The worker is the
+          # primary runtime path for runJobInProcess, so these drive the switch.
+          GEMINI_MODEL_ANALYZE_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_INSIGHTS_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_GOLDEN_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_QUESTION_SUGGEST_FALLBACK: "gemini-2.5-flash"
+          GEMINI_MODEL_DIGEST_FALLBACK: "gemini-2.5-flash"
+          AI_REVIEW_MOCK: "false"
+          # Worker dispatches the manager taskTypes (GOLDEN /
+          # QUESTION_SUGGEST / PEER_360_DIGEST), which read reviews + templates
+          # to build context. Without these env vars the worker falls back to
+          # the @ConfigProperty defaults (prod table names) and the dev IAM
+          # role denies access — exact symptom observed 2026-05-10 22:31.
+          REVIEWS_TABLE_NAME: !Ref ReviewsTable
+          REVIEW_TEMPLATES_TABLE_NAME: !Ref ReviewTemplatesTable
+          # CC-1: shared cache table — worker also resolves cacheKey →
+          # cacheName when running the AI flows. Same env var name as the API.
+          GEMINI_CACHE_TABLE_NAME: !Ref GeminiContextCacheTable
+          # CC-4a: worker runs the QUESTION_SUGGEST dispatch via SQS, so it
+          # also needs the per-task flag. 2026-05-27: prod gate removed —
+          # mirror the API block above. Worker + API must stay in lockstep
+          # to avoid divergent cache behaviour between request entry
+          # (API enqueues with no cache attempt) and worker dispatch
+          # (worker opportunistically caches).
+          GEMINI_CACHE_ENABLED_QUESTION_SUGGEST: "true"
+          # CC-4b: same per-task flags as the API for GOLDEN + DIGEST.
+          GEMINI_CACHE_ENABLED_GOLDEN: "true"
+          GEMINI_CACHE_ENABLED_DIGEST: "true"
+          # CC-4c: worker runs the ANALYZE + INSIGHTS dispatches via SQS,
+          # so it also needs the per-task flags. Worker + API in lockstep.
+          GEMINI_CACHE_ENABLED_ANALYZE: "true"
+          GEMINI_CACHE_ENABLED_INSIGHTS: "true"
+          # CC-5 (AC-11.2): same Stage tag as the API. Worker EMF lines feed
+          # the same metric — keep dimensions consistent across both emitters.
+          CATALYSTFLOW_STAGE: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AiJobsTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt AiJobsQueue.QueueName
+        # Read access to reviews + templates for the manager-flow compute
+        # helpers (queryCompletedByCycleType uses the SubjectIndex GSI; the
+        # SAM DynamoDBReadPolicy grants Query on `<table>/index/*`).
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewTemplatesTable
+        # CC-1: Get/Put/Delete on the cache index — same scope as AiService.
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GeminiContextCacheTable
+      Events:
+        JobsQueue:
+          Type: SQS
+          Properties:
+            Enabled: false
+            Queue: !GetAtt AiJobsQueue.Arn
+            # 2026-05-20 (ConcurrentAIExecution): BatchSize 1 -> 10 to amortise
+            # SQS poll + cold-start overhead across multiple jobs per invocation.
+            # 2026-05-27 (latency push): Window 2 -> 0. The 2s wait was the
+            # batching efficiency knob; for single-message arrivals (the common
+            # case on interactive ANALYZE) it was just dead latency. Setting it
+            # to 0 means Lambda invokes the moment any messages are available.
+            # BatchSize stays 10: under cycle-close burst, the receive call can
+            # still return up to 10 messages at once and they'll be batched —
+            # we just no longer WAIT to fill the batch.
+            # Handler fans out the 10 jobs in parallel via CompletableFuture
+            # (AiWorkerHandler.java) so wall time per invocation stays near
+            # max(per-message) rather than sum(per-message).
+            # ReportBatchItemFailures stays on — only failed messageIds get
+            # redelivered, successful ones inside the same batch are ack'd.
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 0
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  # ---------------------------------------------------------------------------
+  # 2026-05-27 (latency push): keep-warm pinger for AiWorker.
+  #
+  # Short polling on AiJobsQueue keeps the SQS event-source mapping continuously
+  # active, but Lambda may still freeze the worker container after a few minutes
+  # of no actual messages. A frozen container = cold-start on the first real
+  # message. This EventBridge rule invokes AiWorkerFunction every 2 minutes
+  # with a payload of `{"Records": []}` — the handler iterates Records, sees
+  # zero, and returns SQSBatchResponse with no failures (AiWorkerHandler.java
+  # line ~119). Net: no DDB writes, no Gemini calls, no log spam, ~50ms of
+  # compute per ping. Cost: 720 invocations/day at 1024MB × 50ms ≈ $0.10/month.
+  #
+  # If a real cycle-close burst is in flight, the keep-warm invocation just
+  # interleaves harmlessly — the handler is already idempotent and re-entrant.
+  # ---------------------------------------------------------------------------
+  AiWorkerKeepWarm:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !If [IsProd, "CatalystFlow-AiWorker-KeepWarm", "CatalystFlow-AiWorker-KeepWarm-dev"]
+      Description: "Keeps AiWorker container warm so the first interactive ANALYZE doesn't pay cold-start latency"
+      ScheduleExpression: "rate(2 minutes)"
+      State: DISABLED
+      Targets:
+        - Id: AiWorkerKeepWarmTarget
+          Arn: !GetAtt AiWorkerFunction.Arn
+          # SQSEvent with empty Records list — handler loops zero times and returns
+          # an empty SQSBatchResponse. No DDB / no Gemini / no log spam.
+          Input: '{"Records": []}'
+
+  AiWorkerKeepWarmPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AiWorkerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AiWorkerKeepWarm.Arn
+
+  # ---------------------------------------------------------------------------
+  # Lambda: Notification Service
+  # REST/API Lambda for manual reminders and status polling. Intent and delivery
+  # queues are consumed by NotificationWorkerFunction to keep REST and custom SQS
+  # handlers packaged separately, matching the AI service/worker split.
+  # ---------------------------------------------------------------------------
+  NotificationServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, "CatalystFlow-NotificationService", "CatalystFlow-NotificationService-dev"]
+      CodeUri: notification-service/target/function.zip
+      Timeout: 29
+      Environment:
+        Variables:
+          NOTIFICATION_JOBS_TABLE_NAME: !Ref NotificationJobsTable
+          NOTIFICATION_JOBS_QUEUE_URL: !Ref NotificationJobsQueue
+          REVIEWS_TABLE_NAME: !Ref ReviewsTable
+          REVIEW_CYCLES_TABLE_NAME: !Ref ReviewCyclesTable
+          USERS_TABLE_NAME: !Ref UsersTable
+          NOTIFICATION_START_REMINDER_OFFSETS_DAYS: "7,0"
+          NOTIFICATION_END_REMINDER_OFFSETS_DAYS: "14,7,3,1,0"
+          NOTIFICATION_APP_BASE_URL: !If
+            - IsProd
+            - !Ref FrontendBaseUrl
+            - !Ref FrontendBaseUrl
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotificationJobsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewCyclesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt ReviewCyclesTable.Arn
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationJobsQueue.QueueName
+      Events:
+        ManualReminder:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /notifications/reminders/manual
+            Method: POST
+        NotificationJobStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /notifications/jobs/{jobId}/status
+            Method: GET
+
+  # ---------------------------------------------------------------------------
+  # Lambda: Notification Worker
+  # Consumes notification intents (JSON) and delivery jobs (jobId strings).
+  # Deterministic jobIds make duplicate intent delivery safe; the worker still
+  # uses conditional PENDING -> PROCESSING claims before sending SES email.
+  # ---------------------------------------------------------------------------
+  NotificationWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, "CatalystFlow-NotificationWorker", "CatalystFlow-NotificationWorker-dev"]
+      CodeUri: notification-worker/target/function.zip
+      Timeout: 300
+      MemorySize: 512
+      ReservedConcurrentExecutions: 0
+      Environment:
+        Variables:
+          NOTIFICATION_JOBS_TABLE_NAME: !Ref NotificationJobsTable
+          NOTIFICATION_JOBS_QUEUE_URL: !Ref NotificationJobsQueue
+          NOTIFICATION_EVENTS_QUEUE_URL: !Ref NotificationEventsQueue
+          REVIEWS_TABLE_NAME: !Ref ReviewsTable
+          REVIEW_CYCLES_TABLE_NAME: !Ref ReviewCyclesTable
+          USERS_TABLE_NAME: !Ref UsersTable
+          NOTIFICATION_APP_BASE_URL: !If
+            - IsProd
+            - !Ref FrontendBaseUrl
+            - !Ref FrontendBaseUrl
+          NOTIFICATION_FROM_EMAIL: !Ref NotificationFromEmail
+          NOTIFICATION_MAX_ATTEMPTS: "3"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotificationJobsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewCyclesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt NotificationEventsQueue.QueueName
+        - SQSPollerPolicy:
+            QueueName: !GetAtt NotificationJobsQueue.QueueName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt NotificationJobsQueue.QueueName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
+      Events:
+        NotificationEvents:
+          Type: SQS
+          Properties:
+            Enabled: false
+            Queue: !GetAtt NotificationEventsQueue.Arn
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+        NotificationJobs:
+          Type: SQS
+          Properties:
+            Enabled: false
+            Queue: !GetAtt NotificationJobsQueue.Arn
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  # ---------------------------------------------------------------------------
+  # Lambda: User Service
+  # Handles all /users/* routes — manages users in Cognito + DynamoDB
+  # ---------------------------------------------------------------------------
+  UserServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !If [IsProd, "CatalystFlow-UserService", "CatalystFlow-UserService-dev"]
+      CodeUri: user-service/target/function.zip
+      Timeout: 29
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+          # Local-dev escape hatch — gated by the AuthDisabledNotInProd Rule above so
+          # this can never be "true" while Environment=prod.
+          AUTH_DISABLED: !Ref AuthDisabled
+          USER_INVITATIONS_ENABLED: "false"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        # Cognito admin permissions for user management there is no sam macrolike (DynamoDBCrudPolicy) so we use statement 
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminDeleteUser
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminRemoveUserFromGroup
+                - cognito-idp:AdminListGroupsForUser
+                - cognito-idp:ListUsers
+              Resource: !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+      Events:
+        # Public health check — no auth required
+        UserHealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+        # All other user routes — Cognito Authorizer (default)
+        ListUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users
+            Method: GET
+        CreateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users
+            Method: POST
+        GetUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}
+            Method: GET
+        UpdateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}
+            Method: PUT
+        GetUserPublic:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}/public
+            Method: GET
+        GetUserManager:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}/manager
+            Method: GET
+        GetManagerTeam:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CatalystFlowApi
+            Path: /users/{userId}/team
+            Method: GET
+
+  # ---------------------------------------------------------------------------
+  # Scheduler: Daily Australian Midnight Sync
+  # Triggers NotificationServiceFunction directly with a "fake" API Gateway
+  # event so cycle status maintenance and auto event reminder setup run together.
+  # ---------------------------------------------------------------------------
+  CycleMaintenanceSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !If [IsProd, "CatalystFlow-DailySync", "CatalystFlow-DailySync-dev"]
+      Description: "Daily status sync at midnight Australian time"
+      ScheduleExpression: "cron(0 0 * * ? *)"
+      ScheduleExpressionTimezone: "Australia/Sydney"
+      State: DISABLED
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !GetAtt NotificationServiceFunction.Arn
+        RoleArn: !GetAtt CycleMaintenanceSchedulerRole.Arn
+        Input: |
+          {
+            "path": "/notifications/maintenance/daily",
+            "httpMethod": "POST",
+            "requestContext": {
+              "path": "/notifications/maintenance/daily",
+              "httpMethod": "POST"
+            }
+          }
+
+  CycleMaintenanceSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt NotificationServiceFunction.Arn
+
+  # ---------------------------------------------------------------------------
+  # S3 Frontend Hosting (unchanged from original)
+  # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # SSM parameters published for the E2E pipeline (no CloudFormation IAM needed
+  # — CodeBuild E2E role already has SSM read on /catalystflow/*). Refreshed every
+  # deploy. Names are env-scoped so prod and dev stacks coexist.
+  # ---------------------------------------------------------------------------
+  BackendApiUrlParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/catalystflow/${Environment}/backendApiUrl"
+      Type: String
+      Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+      Description: "API Gateway base URL — read by buildspec-e2e.yml"
+
+  ReviewsTableNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/catalystflow/${Environment}/dynamodb/reviewsTable"
+      Type: String
+      Value: !Ref ReviewsTable
+
+  ReviewCyclesTableNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/catalystflow/${Environment}/dynamodb/reviewCyclesTable"
+      Type: String
+      Value: !Ref ReviewCyclesTable
+
+  ReviewTemplatesTableNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/catalystflow/${Environment}/dynamodb/reviewTemplatesTable"
+      Type: String
+      Value: !Ref ReviewTemplatesTable
+
+  NotificationJobsTableNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/catalystflow/${Environment}/dynamodb/notificationJobsTable"
+      Type: String
+      Value: !Ref NotificationJobsTable
+
+
+Outputs:
+  # Single base URL used by the frontend — inject via CATALYSTFLOW_API_URL_PLACEHOLDER
+  BackendApiUrl:
+    Description: "API Gateway base URL for frontend injection"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+
+  ReviewServiceUrl:
+    Description: "Review Service endpoints base"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/reviews"
+
+  UserServiceUrl:
+    Description: "User Service endpoints base"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/users"
+
+  NotificationServiceUrl:
+    Description: "Notification Service endpoints base"
+    Value: !Sub "https://${CatalystFlowApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/notifications"
+
+  AiJobsQueueUrl:
+    Description: "SQS queue URL for AI worker jobs (G2)"
+    Value: !Ref AiJobsQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-AiJobsQueueUrl"
+
+  AiJobsQueueArn:
+    Description: "SQS queue ARN for AI worker jobs (G2)"
+    Value: !GetAtt AiJobsQueue.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-AiJobsQueueArn"
+
+  AiJobsDLQUrl:
+    Description: "Dead-letter queue URL for AI jobs that failed 3 receive attempts"
+    Value: !Ref AiJobsDLQ
+    Export:
+      Name: !Sub "${AWS::StackName}-AiJobsDLQUrl"
+
+  NotificationEventsQueueUrl:
+    Description: "SQS queue URL for notification business intents"
+    Value: !Ref NotificationEventsQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-NotificationEventsQueueUrl"
+
+  NotificationJobsQueueUrl:
+    Description: "SQS queue URL for notification delivery jobs"
+    Value: !Ref NotificationJobsQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-NotificationJobsQueueUrl"
+
+  NotificationJobsDLQUrl:
+    Description: "Dead-letter queue URL for notification delivery jobs"
+    Value: !Ref NotificationJobsDLQ
+    Export:
+      Name: !Sub "${AWS::StackName}-NotificationJobsDLQUrl"

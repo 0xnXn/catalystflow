@@ -1,0 +1,57 @@
+{
+  "name": "CatalystFlow",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "installMaven": "true"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "amazonwebservices.aws-toolkit-vscode",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "aws.telemetry": false
+      },
+      "launch": {
+        "version": "0.2.0",
+        "configurations": [
+          {
+            "type": "java",
+            "name": "Attach to Review Service",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005
+          }
+        ]
+      }
+    }
+  },
+  "remoteEnv": {
+    "AWS_ACCESS_KEY_ID": "test",
+    "AWS_SECRET_ACCESS_KEY": "test",
+    "AWS_DEFAULT_REGION": "ap-southeast-2"
+  },
+  "postCreateCommand": "cd /workspaces/CatalystFlow-backend && bash ./scripts/setup.sh",
+  "postStartCommand": "bash /workspaces/CatalystFlow-backend/scripts/start-local.sh"
+}

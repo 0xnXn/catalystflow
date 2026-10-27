@@ -1,0 +1,179 @@
+GOLDEN REVIEW EXAMPLES — Software & DevOps Engineering
+PURPOSE: Use these examples only to understand good writing style, structure, tone, and use of specific examples. Do NOT use them to infer content requirements. All content requirements come from the criteria doc.
+
+================================================================================
+EXAMPLE 1 — Senior / Managing Consultant Level
+================================================================================
+
+TECHNOLOGY / CORE SKILLS
+
+Competent in core technologies:
+It has been great to guide/support the team in creating a clear roadmap and milestones within the project. It goes without saying that the lack of familiarity with the tech has made me feel dull at times, but has not stopped me from supporting the team where they needed it.
+I have been an active member of handover sessions with TNT team members as well as part of the ABC sessions with senior stakeholders.
+
+Code Quality:
+I have been reviewing team members' code to ensure they adhere to standards and good practices.
+
+Architecture Understanding:
+It is important to understand with clarity how features are put together and what is involved to achieve the final product. In order to support the team with the delivery it is imperative I understand the current and target architecture, identify impacts and liaise with relevant teams for a successful delivery.
+
+Lead others problem solving:
+I have not been coding in the Dynamite project but this has not stopped me from being part of the technical discussions and problem solving workshops we have held. I make sure to give others the opportunity to provide value although after some time, it is always the same people speaking up. I have made sure to give space for more quiet/shy people to solve problems at the appropriate skill level and with the correct support. I have also been part of production troubleshooting when required, particularly for critical and high priority issues.
+
+Provide estimates:
+Providing estimates has been challenging given the fact that there has been many unknowns in the project, the timeline and lack of automation testing. In some cases this has been successful — ACME and WebUI pilot as examples were 2 big deliverables. Mostly the roadmap has allowed little room for error; we have also had external testing dependencies that have had an impact on the estimation given that their view was not aligned with ours.
+
+Manage scope:
+Managing scope has been challenging in many ways. We have done work that has surfaced issues with the platform that TNT at times wants us to fix, although it has not been introduced by the refactoring — such as the various memory leaks. They have also given us other BAU tasks such as jFrog integration and DataDog. We have managed to deliver some of this, but at times it has been difficult to have them understand that there are limited resources to achieve everything within the desired timeline.
+
+Ensure appropriate delivery:
+We have not had cadence, but in general the team has been doing well in keeping on track with the milestones proposed.
+
+Delivery planned and progress communicated:
+I have been taking care of the fortnightly showcases improving over time after the feedback received.
+
+CONSULTING SKILLS
+
+Lead and manage team:
+Over the last year I've managed the Dynamite team. Most of the time it was a CatalystFlow only team but had TNT employees involved from time to time. The goal has been clear and from CatalystFlow's perspective we had our priorities straight. It has been identified that at times the process at TNT was not as efficient as we would like it to be or with big overheads/outdated.
+Having some TNT members helped understand this process and tailor it to match the needs of the project. Several times there were discussions where there was push to do things "the old way", and after explaining the challenge at hand, the priorities and the approach/solution, the TNT team members would get on board.
+This also extended to non-direct team members such as Sarah and John. Even though they are not part of the team they were always interested in what we were doing, how and why. Getting them on board was always a crucial part to proceed before presenting solutions to broader stakeholders.
+
+Trust Building:
+It has been great to work with CatalystFlowrs that I have not met before and build a relationship with them. On the other hand it has been a personal challenge to build trust within TNT, mostly due to the feedback that has been shared about me in the last year.
+First the instance where Sarah was not happy with my level/amount of communication and the way I handled some releases. Second, Chris's comments on attendance to office/meetings and lastly the time I expressed frustration towards him in relation to imaging testing.
+I have always felt that TNT does not see us as one of their own, even though they say the opposite. Regardless, I have made sure to improve in all those areas — communication with Sarah, improvements in presentations, informal conversations as well as deliverables.
+A good example was when we were proposing to do the final release in 3 phases. The client was never on board with such an approach and during an SOS I managed the conversation in a way that Chris was very supportive and made a deal with him with a "shake". Once our team delivered that part of the deal, he was less opposed to our proposal.
+
+Have difficult conversations:
+Similarly there has been improvement in having this type of conversations with the project stakeholders. Dynamite is a project that has brought many unplanned issues as well as undesired inherited problems that have become more evident given the work that has been done such as monitoring and alerting. TNT has regularly been asking for these issues to be addressed and it has been important to maintain the priorities and expectations clear with the stakeholder to keep the team focused on the project deliverables.
+In particular I have been working with a couple of team members to help them improve their communication and participation in the team. Having assertive conversations has been quite important as well as providing them the support they need when they need it.
+
+================================================================================
+EXAMPLE 2 — Engineer Level
+================================================================================
+
+TECHNOLOGY / CORE SKILLS
+
+Over the last year, having a little bit of seniority under my belt within CatalystFlow, and having the opportunity to meet new engineers joining the company, I've jumped on the opportunity to assist in the induction and upbringing of new engineering capabilities within our teams. As someone who was once in their shoes, I realised the difficulties of starting to work on some of the monolithic projects at CatalystFlow. Taking a bit of time aside with new engineers to either help pair program, offer knowledge sharing sessions, or suggest tasks to be delegated to them which could improve their confidence and understanding while still being simple to start on. This was done in the hopes of building up their confidence, lessening their doubts or impostor syndrome type feelings, and slowly push them in the right direction.
+
+One area of expertise I believe I have — which I've recently been approached by another engineer seeking help on — is React Native and native component styling. The coworker had an issue with overlapping elements when dealing with stacking order. I took the time to explain the cause of this by explaining the component tree structure, and helped identify the fix to solve this particular use case. Another area I've had the opportunity to work closely with was React Native mobile sharing — sharing images, text, and URLs from within the app to integrate with other apps such as WhatsApp, Instagram, or Messenger. I delved into the details of a React Native module that supported these sharing functionalities to accurately configure the share experience to match what stakeholders had desired.
+
+Over the last year, I've had the opportunity to present at some department-wide meetings. One was a demonstration for an upcoming delivery for video player user experience enhancements to key user flows, which was well-received. Another demonstration was when a coworker and I had completed work on refactoring a part of the app which allowed the feature to be placed on other key pages. This change allowed the state of the feature to be easily expanded across the app, as the state of each instance would be re-usable, instead of the previously duplicated state. The enablement work was very well-received and was a key highlight in the monthly department Share-back.
+
+CONSULTING SKILLS
+
+Within the Value Streams initiative, and having the opportunity to work with two different Value Streams over the last year, one key focus area includes engineering excellence and capability. I actively contributed to this, as I had noticed gaps within certain implementations that could benefit from uplift or be addressed as tech debt. I worked closely with our Value Stream's Lead Engineer to identify these tasks, document the work involved to resolve them, and push our delivery teams to include capability work within their delivery sprints to further increase code and platform health.
+
+Additionally, automation tasks for Quality Assurance had recently been neglected during one of our team's project deliveries, and I advocated and pushed for these automation tasks to be prioritised as they are crucial for maintaining our code and increasing our confidence in testing before releasing. Due to this effort, one outcome was consistent 20% engineering workload allocation to capability items within each sprint, resulting in better maintained projects, and a greater level of ownership and satisfaction from the engineers within the team.
+
+Working with even more new stakeholders and Product Managers this year, I always keep in mind the importance of communicating appropriately. When stakeholders had the desire to test a feature on their own personal devices, I explained to them the easiest way that they would be able to test and assisted in ensuring they had set up the app correctly and were whitelisted within the target group for A/B testing. This allowed our Product Manager to test out the feature similarly to how an end-user would interact, which allowed him to identify an area for improvement before the planned delivery date.
+
+CATALYSTFLOW VALUES CONSISTENTLY DEMONSTRATED
+
+Of all the Company Values, the one I wanted to focus on the most was Sharing Deep Expertise. I had identified that new engineers would be joining and the combination of the scale of knowledge required, as well as inexperience to the domain and tech stack, made me realise it was an opportunity to help assist new engineers in up-skilling. I also demonstrated this value by continuing to be involved in different types of discussions within project delivery — ranging from knowledge sharing sessions between the team, to larger department-wide demonstrations of features our teams have been working on.
+
+================================================================================
+EXAMPLE 3 — Senior Engineer Level
+================================================================================
+
+TECHNOLOGY / CORE SKILLS
+
+I have consistently served as the go-to person for technical and code-related queries across multiple projects, including my work at Coldplay, Stars (Bench project), and Magic. I have leveraged my expertise in technologies such as Spring Boot, Java, TypeScript, Kotlin, Maven, Gradle, and AWS Services to drive technical solutions.
+
+Notable achievements include:
+While at Coldplay, I played a key role in enhancing the payment processing system by successfully implementing Adyen 3DS in the Retail checkout system within tight deadlines, making critical front-end and back-end modifications while overcoming multiple challenges. I also resolved a long-standing issue of duplicate payments, ensuring a more reliable and error-free transaction process. Additionally, I developed a Backend-for-Frontend (BFF) from scratch for the native payments initiative, improving system efficiency and streamlining payment processing. Beyond these contributions, I collaborated closely with the Principal Engineer, assisting in designing new solutions to drive technical improvements.
+
+While on the Bench, I played a key role and helped the team resolve a blocker by setting up and integrating Step Functions, API Gateway, and DynamoDB, ensuring seamless functionality and efficient workflow.
+
+At Yellow, I successfully migrated multiple Angular projects to newer versions and took on the most complex codebase that required a Java upgrade. I ensured it was fully built and functional before completing my tenure on the project.
+
+At Magic, I took the initiative to explore new technologies by successfully executing multiple proofs of concept, setting up a single-page web application from scratch, and developing a mobile app in React Native — a completely new domain for me. Additionally, I deployed these applications in the client's AWS account, enhancing my expertise in cloud-based deployments. I am also a key contributor to the team's planning process by providing broader estimates and helping improve project scope and delivery timelines.
+
+I am committed to fostering a collaborative and high-performing development environment by actively engaging in troubleshooting and debugging issues faced by the team. I contribute to discussions on architecture, new features, and system upgrades, ensuring well-informed technical decisions. By providing accurate estimates for backlog stories, I help streamline project planning and execution.
+
+My thorough code reviews focus on enhancing code quality through constructive feedback. I have successfully identified and resolved multiple production bugs, minimising system disruptions. I take on complex tasks either as a lead developer or by working closely with team members to drive successful outcomes.
+
+I am currently an active member of the server-side guild, further strengthening my technical expertise and contributing to knowledge sharing across teams.
+
+CONSULTING SKILLS
+
+I bring strong consulting values to my work by actively engaging in team meetings and offering insights to enhance product quality. I identify promising industry developments and advocate for their adoption when beneficial. Prioritising tasks effectively, I often handle multiple stories to align with team objectives and drive technical activities toward business outcomes. My documentation ensures clarity for both technical and non-technical stakeholders, supporting effective communication of technical direction within the team.
+
+Committed to delivering high-quality products within agreed timelines, I proactively propose solutions to team challenges and advocate for their implementation unless a better alternative arises. I act as an outward-facing advocate for my team's technical needs, engaging in discussions with leads and managers to provide insights on new features and existing implementations. I am trusted by my peers for my input and feedback, and I take accountability for both individual and collective team decisions.
+
+CATALYSTFLOW VALUES CONSISTENTLY DEMONSTRATED
+
+People First: I prioritise customer needs by ensuring solutions are user-friendly and effective. I foster a culture of respect and empathy, always maintaining open communication.
+
+Sharing Deep Expertise: I actively contribute to my team's success by sharing knowledge and guiding others when needed. I take every opportunity to learn new technologies and approaches, and then pass that learning on to empower those around me.
+
+Pragmatic Delivery: I focus on delivering practical, high-quality solutions that drive business outcomes. I take ownership of my work, ensuring timely and effective execution.
+
+Integrity Above All: I uphold the highest standards of integrity in both my work and decision-making. I follow through on commitments, make ethical choices even when no one is watching, and speak up when necessary to ensure the right outcomes.
+
+================================================================================
+EXAMPLE 4 — Senior Engineer Level (Client Lead)
+================================================================================
+
+TECHNOLOGY / CORE SKILLS
+
+Over the past year, I've honed my technical skills in AWS and various tech stacks, including Python, TypeScript, and SQL, through my work on the Banana, Grape, and Apple projects. I have successfully delivered end-to-end solutions and consistently met and exceeded expectations across diverse team environments and technologies.
+
+I have obtained the Professional level certification of AWS Certified Solutions Architect, which is widely recognised as one of the most challenging in the field.
+
+Main deliverables:
+- Banana: Saturn Landing Zone project — backup and logging solution (Python, CloudFormation, LZA, Bash)
+- Grape: SageMaker/MLOps prototyping (Python, Jupyter, AWS SageMaker)
+- Grape: Proposal and Statement of Work on AI/ML Data Zone
+- Grape: Tender Proposal and Statement of Work on AWS Account Review
+- Apple: Qualtrics Conversations (Terraform, Node.js)
+- Apple: Data Platform (in progress)
+
+CONSULTING SKILLS
+
+I had the opportunity to work with CatalystFlow's General Manager on the statement of work for two Grape project proposals. I was mainly responsible for gathering and analysing requirements, drafting solution proposals, calculating and proposing estimated time, effort and pricing, participating in contract and resourcing negotiations, helping to secure AWS funding to support the project, and acting as the point of contact for day-to-day pre-sales communications with the client. As a result, we secured approval for a 75-day AI/ML Data Zone project, with approval for the other project expected soon.
+
+At Banana, I took on the role of team lead, guiding fellow CatalystFlowrs and serving as the primary CatalystFlow contact for the ABC consulting team. When I first joined, there was noticeable tension between the CatalystFlow and ABC teams due to differing work styles, technical visions, and restrictions from the client. As the CatalystFlow tech lead, I acted as a bridge between the two teams, fostering collaboration, easing tensions, and ultimately restoring productivity across the team. In parallel, I designed and delivered a solution that automates the backup of various ABC resources using tagging, Lambdas, and a centralised EventBridge — deployed across multiple ABC organisations through their LZA pipeline as an integral part of their phase 1 cloud migration.
+
+At Apple, I worked closely with multiple stakeholders in a complex environment where the platform team, customer experience team, Qualtrics team, and engineering management each had different perspectives without any established process for reaching consensus. Acting as the bridge between these teams, I led both the discovery and technical delivery, defining the scope of work, providing estimates, managing customer expectations, and independently delivering an end-to-end solution that automatically streams customer conversations to the Qualtrics data analytics platform.
+
+CATALYSTFLOW VALUES CONSISTENTLY DEMONSTRATED
+
+People First: I always put customers' needs first and communicate as often as needed. I believe empathy and respect are foundations for leadership and always consider them first when making decisions in a leadership role.
+
+Sharing Deep Expertise: I understand the importance of knowledge sharing and always try my best to spread knowledge to customers and colleagues.
+
+Pragmatic Delivery: I always do my best to find the most efficient solution that can deliver maximum business value with limited time and resources.
+
+================================================================================
+EXAMPLE 5 — Engineer / Senior Engineer Level (Specialist)
+================================================================================
+
+TECHNOLOGY / CORE SKILLS
+
+During my time at Neighbours, I developed deep expertise in AWS network security and automation, becoming the go-to person for these areas within the AWS organisation.
+
+AWS Firewall Manager Implementation:
+I led the implementation, testing, and documentation of AWS Firewall Manager across the entire AWS organisation. The previous approach relied on a for-loop of bash scripts to apply default firewall rules to each account's default VPC, which was inefficient and required significant manual effort. By implementing AWS Firewall Manager, I automated this process, ensuring that network firewalls were consistently applied to newly created VPCs and eliminating manual steps. I documented the process internally, providing a detailed breakdown of key decisions and the reasoning behind the implementation. As a result, I became the go-to person for AWS Firewall Manager within the organisation and played a key role in helping colleagues adopt this approach. I also shared my insights in a blog post, outlining the challenges, solutions, and thought process behind the deployment.
+
+VPC CIDR Conflict Resolution:
+While working on an unrelated task, I discovered a VPC CIDR range conflict within the AWS environment. Recognising the potential risk, I raised the issue with the Cloud Center of Excellence. My findings enabled the team to remediate the conflict before it resulted in a routing error and potential downtime.
+
+VPC Endpoint Optimisation & Cost Savings:
+I led the deployment of centralised VPC endpoints in a hub-and-spoke AWS architecture. The existing approach deployed separate VPC endpoints in each spoke account, unnecessarily increasing complexity and operational expenses. After identifying this inefficiency, I tested a solution to transition to shared VPC endpoints, reducing costs and improving deployment processes. Due to the potential impact of this change, I planned an after-hours production release, ensuring a rollback strategy was in place. Once the migration was successfully completed and validated, I cleaned up any rollback-related code.
+
+Neighbours FinOps Project:
+I completed an internal project to improve FinOps within the Neighbours AWS Sandpit account, focusing on optimising cost management, enhancing cost monitoring, and improving resource lifecycle management. I implemented a monthly budget with alerts to a Slack channel, configured AWS Cost Anomaly Detection for real-time spending spike alerts, and configured the AWS Nuke pipeline to send alerts on any failures.
+
+CONSULTING SKILLS
+
+I worked closely with stakeholders to translate high-level requirements into a practical technical solution that reduced expenses within the Sandpit account. I ensured the solution was appropriately scoped — avoiding unnecessary complexity for what is ultimately a disposable environment — while still delivering measurable cost savings and improved resource lifecycle management.
+
+As a key representative of CatalystFlow, I successfully built trust with the client, delivering value despite initial ambiguity in the statement of work. Although the client initially preferred a local resource, I recognised the importance of the engagement and volunteered to travel, reinforcing CatalystFlow's commitment to client success.
+
+I collaborated with the CatalystFlowWorks lead to drive engagement with the platform, creating an interactive crossword puzzle that encouraged exploration of content. Anticipating an increase in site traffic, I proactively conducted a quality assurance review, correcting grammatical errors and removing outdated content.
+
+CATALYSTFLOW VALUES CONSISTENTLY DEMONSTRATED
+
+I consistently perform my role in a way which stays true to CatalystFlow values. By combining technical expertise, strategic problem-solving, and proactive leadership, I have delivered tangible value to both CatalystFlow and its clients. Whether driving cost optimisation, strengthening client relationships, or improving internal initiatives, I consistently align my work with broader business goals while maintaining a strong consulting mindset.
